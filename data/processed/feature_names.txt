@@ -1,0 +1,64 @@
+Feature Names (in order):
+==================================================
+  1. gender
+  2. SeniorCitizen
+  3. Partner
+  4. Dependents
+  5. tenure
+  6. PhoneService
+  7. PaperlessBilling
+  8. MonthlyCharges
+  9. TotalCharges
+ 10. is_new_customer
+ 11. is_long_term
+ 12. tenure_bins
+ 13. avg_monthly_spend
+ 14. charge_per_tenure
+ 15. price_increase
+ 16. high_monthly_charge
+ 17. total_services
+ 18. has_internet
+ 19. has_phone
+ 20. has_tech_support
+ 21. has_online_security
+ 22. is_month_to_month
+ 23. has_auto_payment
+ 24. is_paperless
+ 25. is_senior
+ 26. has_family
+ 27. is_single_no_deps
+ 28. MultipleLines_No
+ 29. MultipleLines_No phone service
+ 30. MultipleLines_Yes
+ 31. InternetService_DSL
+ 32. InternetService_Fiber optic
+ 33. InternetService_No
+ 34. OnlineSecurity_No
+ 35. OnlineSecurity_No internet service
+ 36. OnlineSecurity_Yes
+ 37. OnlineBackup_No
+ 38. OnlineBackup_No internet service
+ 39. OnlineBackup_Yes
+ 40. DeviceProtection_No
+ 41. DeviceProtection_No internet service
+ 42. DeviceProtection_Yes
+ 43. TechSupport_No
+ 44. TechSupport_No internet service
+ 45. TechSupport_Yes
+ 46. StreamingTV_No
+ 47. StreamingTV_No internet service
+ 48. StreamingTV_Yes
+ 49. StreamingMovies_No
+ 50. StreamingMovies_No internet service
+ 51. StreamingMovies_Yes
+ 52. Contract_Month-to-month
+ 53. Contract_One year
+ 54. Contract_Two year
+ 55. PaymentMethod_Bank transfer (automatic)
+ 56. PaymentMethod_Credit card (automatic)
+ 57. PaymentMethod_Electronic check
+ 58. PaymentMethod_Mailed check
+ 59. tenure_group_0-12
+ 60. tenure_group_12-24
+ 61. tenure_group_24-48
+ 62. tenure_group_48+
