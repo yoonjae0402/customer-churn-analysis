@@ -1,0 +1,91 @@
+# Customer Churn Analysis - Configuration File
+
+# Project Settings
+project:
+  name: "Customer Churn Prediction"
+  version: "1.0.0"
+  author: "Your Name"
+  description: "Predictive model for customer churn with business impact analysis"
+
+# Data Settings
+data:
+  raw_data_path: "data/raw/telco_churn.csv"
+  processed_data_path: "data/processed/data_processed_final.csv"
+  train_test_split: 0.2
+  random_state: 42
+
+# Feature Engineering
+features:
+  numerical:
+    - tenure
+    - MonthlyCharges
+    - TotalCharges
+  categorical:
+    - gender
+    - Partner
+    - Dependents
+    - PhoneService
+    - InternetService
+    - Contract
+    - PaperlessBilling
+    - PaymentMethod
+  target: "Churn"
+
+# Model Settings
+model:
+  algorithm: "RandomForest"
+  hyperparameters:
+    n_estimators: 100
+    max_depth: 15
+    min_samples_split: 5
+    min_samples_leaf: 2
+    random_state: 42
+
+  # Model Selection Criteria
+  primary_metric: "f1_score"
+  secondary_metrics:
+    - accuracy
+    - precision
+    - recall
+    - roc_auc
+
+# Business Parameters
+business:
+  avg_customer_ltv: 2000 # Average customer lifetime value ($)
+  retention_campaign_cost: 50 # Cost per customer ($)
+  expected_save_rate: 0.5 # Expected campaign success rate (50%)
+
+  # Risk Segmentation Thresholds
+  risk_segments:
+    high_risk_threshold: 0.7
+    medium_risk_threshold: 0.4
+
+# Deployment Settings
+deployment:
+  model_path: "models/best_model.pkl"
+  scaler_path: "models/scaler.pkl"
+  api_version: "v1"
+
+  # Production Settings
+  production:
+    enable_logging: true
+    log_predictions: true
+    retrain_frequency: "quarterly" # quarterly, monthly, weekly
+
+# Reporting
+reports:
+  output_dir: "reports"
+  figures_dir: "reports/figures"
+  generate_html: true
+  generate_pdf: false
+
+# Monitoring
+monitoring:
+  track_metrics:
+    - prediction_accuracy
+    - false_negative_rate
+    - false_positive_rate
+    - avg_churn_probability
+  alert_thresholds:
+    accuracy_drop: 0.05 # Alert if accuracy drops by 5%
+    data_drift: 0.10 # Alert if feature distribution changes by 10%

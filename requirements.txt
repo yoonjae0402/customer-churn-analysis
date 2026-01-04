@@ -1,0 +1,40 @@
+# Customer Churn Analysis - Requirements
+# Python 3.9+
+
+# Core Data Science Libraries
+pandas==2.0.3
+numpy==1.24.3
+scipy==1.11.1
+
+# Machine Learning
+scikit-learn==1.3.0
+joblib==1.3.1
+
+# Visualization
+matplotlib==3.7.2
+seaborn==0.12.2
+
+# Jupyter
+jupyter==1.0.0
+notebook==7.0.0
+ipykernel==6.25.0
+
+# Utilities
+pathlib==1.0.1
+
+# Optional: Advanced ML
+# xgboost==1.7.6
+# lightgbm==4.0.0
+# catboost==1.2
+
+# Optional: Deep Learning
+# tensorflow==2.13.0
+# torch==2.0.1
+
+# Optional: Imbalanced Learning
+# imbalanced-learn==0.11.0
+
+# Optional: Deployment
+# flask==2.3.2
+# fastapi==0.100.0
+# streamlit==1.25.0
