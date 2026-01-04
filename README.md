@@ -336,7 +336,7 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 
 ## 👤 Author
 
-**Your Name**
+**Yunjae Jung**
 
 - LinkedIn: [linkedin.com/in/yunjae-jung-99a13b221](https://www.linkedin.com/in/yunjae-jung-99a13b221/)
 - GitHub: [@yoonjae0402](https://github.com/yoonjae0402)
@@ -350,22 +350,6 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 - **Inspiration**: IBM Cognos Analytics sample datasets
 - **Libraries**: scikit-learn, pandas, matplotlib communities
 - **Resources**: Towards Data Science, Kaggle kernels
-
----
-
-## 📊 Project Stats
-
-![GitHub last commit](https://img.shields.io/github/last-commit/yourusername/customer-churn-analysis)
-![GitHub repo size](https://img.shields.io/github/repo-size/yourusername/customer-churn-analysis)
-![GitHub stars](https://img.shields.io/github/stars/yourusername/customer-churn-analysis)
-
----
-
-## 🔗 Related Projects
-
-- [Customer Lifetime Value Prediction](https://github.com/yourusername/clv-prediction)
-- [Sentiment Analysis for Customer Reviews](https://github.com/yourusername/sentiment-analysis)
-- [Recommendation System](https://github.com/yourusername/recommender-system)
 
 ---
 
