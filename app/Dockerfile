@@ -12,12 +12,18 @@ ENV PYTHONUNBUFFERED 1
 # In this specific case, python:3.9-slim usually has what's needed for the listed libraries.
 
 # Copy only requirements.txt first to leverage Docker cache
-COPY requirements.txt .
+COPY app/requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
-COPY . /app
+# Assuming the Docker build context is the project root,
+# and files are now inside the 'app' subdirectory.
+COPY app/.env.example ./.env.example
+COPY app/main.py ./main.py
+COPY app/save_pipeline.py ./save_pipeline.py
+COPY app/models ./models
+COPY app/data ./data
 
 # Expose the port FastAPI will run on
 EXPOSE 8000

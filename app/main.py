@@ -10,7 +10,8 @@ from typing import Dict, Any, List, Optional, Tuple
 import joblib
 import pandas as pd
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 import numpy as np
 
@@ -44,6 +45,15 @@ logger.addHandler(file_handler)
 # --- Custom Exception ---
 class ChurnException(HTTPException):
     def __init__(self, status_code: int, detail: str, ex_type: str = "ChurnPredictionError"):
+        """
+        Initializes a new ChurnException instance.
+
+        Args:
+            status_code (int): The HTTP status code to return with this exception.
+            detail (str): A detailed message describing the error.
+            ex_type (str, optional): A specific type for the exception (e.g., "ModelLoadingError").
+                                     Defaults to "ChurnPredictionError".
+        """
         super().__init__(status_code=status_code, detail=detail)
         self.ex_type = ex_type
         logger.error(f"{ex_type}: {detail}")
@@ -64,9 +74,9 @@ except Exception as e:
     raise ChurnException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                          detail=f"Failed to configure Gemini API: {e}", ex_type="ConfigurationError")
 
-MODELS_DIR: Path = Path('models/')
-FEATURE_NAMES_PATH: Path = Path('data/processed/feature_names.txt')
-DATA_DIR: Path = Path('data/processed/') # Used for loading data_after_eda.csv for categories
+MODELS_DIR: Path = Path('./models/')
+FEATURE_NAMES_PATH: Path = Path('./data/processed/feature_names.txt')
+DATA_DIR: Path = Path('./data/processed/') # Used for loading data_after_eda.csv for categories
 
 # --- Singleton for Model Loading ---
 class ChurnModelLoader:
@@ -77,12 +87,27 @@ class ChurnModelLoader:
     _feature_names: Optional[List[str]] = None
 
     def __new__(cls) -> "ChurnModelLoader":
+        """
+        Implements the Singleton pattern for ChurnModelLoader.
+        Ensures that model and feature names are loaded only once.
+
+        Returns:
+            ChurnModelLoader: The single instance of the ChurnModelLoader.
+        """
         if cls._instance is None:
             cls._instance = super(ChurnModelLoader, cls).__new__(cls)
             cls._instance._load_models_and_features()
         return cls._instance
 
     def _load_models_and_features(self) -> None:
+        """
+        Loads the ML model (scaler and predictor) and feature names from disk.
+        This method is called only once during the instantiation of the singleton.
+
+        Raises:
+            ChurnException: If the model file or feature names file cannot be found
+                            or if there's an error loading its components.
+        """
         logger.info("Loading ML model and scaler...")
         try:
             combined_pipeline = joblib.load(MODELS_DIR / 'churn_model.pkl')
@@ -121,7 +146,15 @@ class ChurnModelLoader:
                                  detail=detail, ex_type="FeatureLoadingError")
 
     def _load_feature_names_from_file(self, file_path: Path) -> List[str]:
-        """Loads feature names from a text file, skipping header lines."""
+        """
+        Loads feature names from a text file, skipping header and formatting lines.
+
+        Args:
+            file_path (Path): The path to the file containing feature names.
+
+        Returns:
+            List[str]: A list of feature names in the order they should be used by the model.
+        """
         with open(file_path, 'r') as f:
             lines = f.readlines()
         
@@ -141,14 +174,35 @@ class ChurnModelLoader:
 
     @property
     def scaler(self) -> Any:
+        """
+        Returns the loaded StandardScaler object.
+
+        Returns:
+            Any: The fitted StandardScaler object.
+        """
         return self._scaler
 
     @property
     def model(self) -> Any:
+        """
+        Returns the loaded ML prediction model.
+
+        Returns:
+            Any: The trained ML model (e.g., LogisticRegression).
+        """
         return self._model
     
     @property
     def feature_names(self) -> List[str]:
+        """
+        Returns the list of feature names in the order expected by the model.
+
+        Returns:
+            List[str]: The list of feature names.
+
+        Raises:
+            ChurnException: If feature names were not loaded correctly during initialization.
+        """
         if self._feature_names is None:
             # This should ideally not happen if __new__ is correctly loading
             raise ChurnException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
@@ -196,13 +250,36 @@ app = FastAPI(
 )
 
 @app.exception_handler(ChurnException)
-async def churn_exception_handler(request, exc: ChurnException):
+async def churn_exception_handler(request: Request, exc: ChurnException) -> JSONResponse:
+    """
+    Handles ChurnException, logging the error and returning a standardized JSON response.
+
+    Args:
+        request (Request): The incoming FastAPI request.
+        exc (ChurnException): The exception that was raised.
+
+    Returns:
+        JSONResponse: A FastAPI JSON response with the error details.
+    """
     logger.error(f"Handled ChurnException: {exc.ex_type} - {exc.detail} (Status: {exc.status_code})")
-    return HTTPException(status_code=exc.status_code, detail=exc.detail).response()
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
 # --- Preprocessing Function (Replicates logic from 02_feature_engineering.ipynb) ---
 async def preprocess_data(raw_data: CustomerData) -> pd.DataFrame:
+    """
+    Preprocesses raw customer data by applying feature engineering, encoding, and scaling
+    steps as defined in the 02_feature_engineering.ipynb notebook.
+
+    Args:
+        raw_data (CustomerData): The raw customer data received from the API or CLI.
+
+    Returns:
+        pd.DataFrame: A DataFrame with features transformed and scaled, ready for ML model inference.
+
+    Raises:
+        ChurnException: If there's an issue loading reference data for preprocessing (e.g., data_after_eda.csv).
+    """
     logger.info(f"Preprocessing data for customer: {raw_data.model_dump_json()}")
     df = pd.DataFrame([raw_data.model_dump()])
 
@@ -314,6 +391,19 @@ async def preprocess_data(raw_data: CustomerData) -> pd.DataFrame:
 
 # --- Prediction Function ---
 async def predict_churn(processed_data: pd.DataFrame) -> float:
+    """
+    Predicts the churn probability for a given processed customer data.
+
+    Args:
+        processed_data (pd.DataFrame): A DataFrame containing the preprocessed
+                                       and feature-engineered customer data.
+
+    Returns:
+        float: The predicted churn probability (a value between 0 and 1).
+
+    Raises:
+        ChurnException: If an error occurs during the model prediction phase.
+    """
     logger.info("Predicting churn probability...")
     try:
         churn_probability: float = float(model.predict_proba(processed_data)[:, 1][0])
@@ -328,6 +418,20 @@ async def predict_churn(processed_data: pd.DataFrame) -> float:
 
 # --- Gemini Offer Generation Function ---
 async def generate_marketing_offer(churn_probability: float, customer_data: CustomerData) -> str:
+    """
+    Generates a personalized marketing offer using Google's Gemini AI.
+    The offer is based on the predicted churn probability and the customer's profile.
+
+    Args:
+        churn_probability (float): The predicted churn probability for the customer.
+        customer_data (CustomerData): The raw customer data used for prediction.
+
+    Returns:
+        str: A personalized marketing offer generated by Gemini.
+
+    Raises:
+        ChurnException: If an error occurs during the Gemini API call (only in API mode).
+    """
     logger.info(f"Generating marketing offer for churn probability: {churn_probability:.2%}")
     senior_citizen_status: str = "Yes" if customer_data.SeniorCitizen == 1 else "No"
 
@@ -384,7 +488,10 @@ async def generate_marketing_offer(churn_probability: float, customer_data: Cust
 @app.get("/health", response_model=Dict[str, Any]) # Changed to Any because model_version is str
 async def health_check() -> Dict[str, Any]:
     """
-    Health check endpoint to verify server status.
+    Health check endpoint to verify server status and model version.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the health status, model version, and current timestamp.
     """
     logger.info("Health check endpoint accessed.")
     return {"status": "healthy", "model_version": ChurnModelLoader.MODEL_VERSION, "timestamp": time.time()}
@@ -393,6 +500,20 @@ async def health_check() -> Dict[str, Any]:
 # --- API Endpoint ---
 @app.post("/predict")
 async def predict_churn_endpoint(customer_data: CustomerData) -> Dict[str, Any]:
+    """
+    FastAPI endpoint to predict customer churn probability and generate a personalized
+    marketing offer.
+
+    Args:
+        customer_data (CustomerData): The incoming customer data for prediction.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the churn probability, marketing offer,
+                        and metadata including model version and inference latency.
+
+    Raises:
+        ChurnException: If any error occurs during preprocessing, prediction, or Gemini API call.
+    """
     """
     Predicts customer churn probability and generates a personalized marketing offer.
     """
@@ -425,6 +546,15 @@ async def predict_churn_endpoint(customer_data: CustomerData) -> Dict[str, Any]:
 
 # --- New CLI Result Display Function ---
 def display_results_cli(churn_prob: float, marketing_offer: str, customer_data: CustomerData) -> None:
+    """
+    Displays the churn prediction results and marketing offer in a formatted way
+    to the console using Rich library.
+
+    Args:
+        churn_prob (float): The predicted churn probability.
+        marketing_offer (str): The personalized marketing offer from Gemini.
+        customer_data (CustomerData): The raw customer data provided.
+    """
     console.print(Panel("[bold yellow]Customer Churn Prediction Result[/bold yellow]", expand=False))
 
     risk_color: str = "bold red" if churn_prob > 0.5 else "bold green"
@@ -539,6 +669,7 @@ if __name__ == "__main__":
             import asyncio
             
             async def run_cli_tasks() -> None:
+                # Inner async function to run the CLI prediction and display tasks.
                 processed_df: pd.DataFrame = await preprocess_data(customer_data_cli)
                 churn_prob: float = await predict_churn(processed_df)
                 marketing_offer: str = await generate_marketing_offer(churn_prob, customer_data_cli)
