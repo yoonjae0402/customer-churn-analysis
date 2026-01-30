@@ -156,16 +156,65 @@ To build and run the application using Docker:
     docker build -t customer-churn-app .
     ```
 
-2.  **Run the Docker container:**
-    For the FastAPI application:
+2.  **Run the Docker container (API Mode - Secure API Key Handling):**
+    When running your Docker container, it's crucial to pass sensitive information like your `GEMINI_API_KEY` securely as an environment variable. **Never hardcode API keys directly into your Dockerfile or application code.**
+
     ```bash
-    docker run -p 8000:8000 -e GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE" customer-churn-app
+    docker run -p 8000:8000 \
+        -e GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE" \
+        customer-churn-app
     ```
-    For CLI mode within Docker:
+    Replace `"YOUR_GEMINI_API_KEY_HERE"` with your actual Gemini API key. This ensures the key is provided at runtime and not baked into the image.
+
+3.  **Run the Docker container (CLI Mode):**
+    You can also run the CLI mode directly within the Docker container by overriding the default `CMD`:
+
     ```bash
-    docker run -e GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE" customer-churn-app python3 main.py --cli --gender Male --senior_citizen 0 --partner No --dependents No --tenure 1 --phone_service Yes --multiple_lines No --internet_service DSL --online_security No --online_backup No --device_protection No --tech_support No --streaming_tv No --streaming_movies No --contract Month-to-month --paperless_billing Yes --payment_method Electronic check --monthly_charges 45.0
+    docker run \
+        -e GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE" \
+        customer-churn-app python3 main.py --cli \
+        --gender Male \
+        --senior_citizen 0 \
+        --partner No \
+        --dependents No \
+        --tenure 1 \
+        --phone_service Yes \
+        --multiple_lines No \
+        --internet_service DSL \
+        --online_security No \
+        --online_backup No \
+        --device_protection No \
+        --tech_support No \
+        --streaming_tv No \
+        --streaming_movies No \
+        --contract Month-to-month \
+        --paperless_billing Yes \
+        --payment_method Electronic check \
+        --monthly_charges 45.0
     ```
     *(Remember to replace `"YOUR_GEMINI_API_KEY_HERE"` with your actual API key.)*
+
+### 🔒 Enhanced Security with Secret Management Services (e.g., AWS Secrets Manager)
+
+For production deployments, especially in cloud environments, it's highly recommended to integrate with dedicated secret management services rather than passing secrets directly via environment variables in `docker run` commands.
+
+**Why use Secret Management?**
+-   **Centralized Control:** Store and manage all your secrets in one secure location.
+-   **Improved Security:** Secrets are encrypted at rest and in transit.
+-   **Automatic Rotation:** Services can automatically rotate secrets, reducing the risk of compromised long-lived credentials.
+-   **Granular Access:** Control who (or what services) can access which secrets with fine-grained permissions.
+-   **Auditability:** Track access to secrets for compliance and security auditing.
+
+**Conceptual Integration with AWS Secrets Manager:**
+
+1.  **Store Secret:** Place your `GEMINI_API_KEY` into AWS Secrets Manager.
+2.  **IAM Permissions:** Configure an AWS Identity and Access Management (IAM) role (e.g., an ECS Task Role, EKS Pod Identity, or EC2 Instance Profile) with permissions to read the specific secret(s) from Secrets Manager.
+3.  **Application Access:**
+    *   **Option A (Direct Retrieval in Code):** Modify your application's startup logic (e.g., in `main.py` or a dedicated `config.py`) to use the AWS SDK (Boto3 in Python) to fetch the `GEMINI_API_KEY` from Secrets Manager at runtime. The application would assume the IAM role, which grants it access.
+    *   **Option B (Container Orchestration Integration):** If using services like AWS ECS or EKS, these platforms often have native integrations to inject secrets from Secrets Manager directly as environment variables into your container at startup. This approach is generally preferred as it keeps your application code cleaner.
+4.  **Deployment:** Deploy your Docker container to an environment (like AWS ECS, EKS) where it can assume the configured IAM role.
+
+This approach significantly hardens the security posture of your application by decoupling sensitive credentials from your deployment commands and code.
 
 --- 
 
