@@ -1,360 +1,162 @@
-# Customer Churn Prediction Analysis
+# 📈 Customer Churn Prediction & Personalized Marketing Assistant
 
-> Enterprise-grade machine learning project for predicting and preventing customer churn
+## Project Overview
 
-[![Python](https://img.shields.io/badge/Python-3.9+-blue)](https://www.python.org/)
-[![ML](https://img.shields.io/badge/ML-scikit--learn-orange)](https://scikit-learn.org/)
-[![Status](https://img.shields.io/badge/Status-Production%20Ready-success)](https://github.com)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+This project develops a comprehensive solution for predicting customer churn and generating personalized retention marketing offers. It leverages traditional Machine Learning (ML) models for robust churn probability prediction and integrates with a Large Language Model (LLM) – Google's Gemini API – to craft dynamic, context-aware marketing messages. The solution is accessible via both a FastAPI web API and a powerful Command Line Interface (CLI).
 
-## 📊 Project Overview
+## ✨ Features
 
-This project builds a comprehensive churn prediction system that identifies at-risk customers, enabling proactive retention strategies and maximizing customer lifetime value.
+- **Churn Prediction:** Utilizes a Logistic Regression model to predict customer churn probability based on various customer attributes.
+- **Personalized Offers (powered by Gemini AI):** Generates tailored marketing offers to retain at-risk customers, considering their specific profile and churn likelihood.
+- **Scalable API:** A FastAPI endpoint (`/predict`) for real-time churn prediction and marketing offer generation.
+- **Interactive CLI:** A command-line interface for quick predictions and offer generation, ideal for testing or ad-hoc analysis.
+- **Secure API Key Handling:** Integrates `python-dotenv` for securely loading API keys from `.env` files, preventing hardcoding.
+- **Containerized Deployment:** Dockerfile provided for easy, consistent deployment across different environments.
 
-**Business Impact**:
+## 🚀 Architecture
 
-- **85% Recall** - Identifies 85% of churning customers before they leave
-- **$165K+ Annual Savings** - Projected revenue protection through targeted retention
-- **1,900% ROI** - Return on investment for retention campaigns
+The system's architecture is designed to integrate predictive analytics with generative AI, providing a seamless flow from raw customer data to actionable insights.
 
----
-
-## 🎯 Key Results
-
-| Metric        | Value | Impact                                   |
-| ------------- | ----- | ---------------------------------------- |
-| **Accuracy**  | 82%   | Overall prediction correctness           |
-| **Precision** | 70%   | 70% of predicted churners actually churn |
-| **Recall**    | 85%   | Catches 85% of all churning customers    |
-| **F1-Score**  | 0.77  | Balanced performance metric              |
-| **ROC-AUC**   | 0.87  | Strong discriminative ability            |
-
----
-
-## 🗂️ Project Structure
-
-```
-customer-churn-analysis/
-│
-├── data/
-│   ├── raw/                      # Original dataset
-│   │   └── telco_churn.csv
-│   └── processed/                # Processed datasets
-│       ├── data_after_eda.csv
-│       └── data_processed_final.csv
-│
-├── notebooks/                    # Jupyter notebooks (analysis workflow)
-│   ├── 01_data_exploration.ipynb      # EDA & insights
-│   ├── 02_feature_engineering.ipynb   # Data preprocessing
-│   ├── 03_modeling.ipynb              # Model training
-│   └── 04_evaluation.ipynb            # Business impact analysis
-│
-├── src/                          # Python source code (optional modules)
-│   ├── __init__.py
-│   ├── data_loader.py           # Data loading utilities
-│   ├── preprocessing.py         # Feature engineering
-│   ├── model.py                 # Model training functions
-│   └── evaluation.py            # Evaluation metrics
-│
-├── models/                       # Trained models
-│   ├── best_model.pkl          # Production model
-│   ├── scaler.pkl              # Feature scaler
-│   └── model_comparison.csv    # Model performance comparison
-│
-├── reports/                      # Generated reports
-│   ├── figures/                # Visualizations
-│   ├── customer_risk_segments.csv    # Risk scoring results
-│   └── business_impact.csv     # ROI analysis
-│
-├── requirements.txt             # Python dependencies
-├── config.yaml                  # Configuration file
-├── README.md                    # This file
-└── LICENSE                      # MIT License
+```mermaid
+graph TD
+    A[Raw Customer Data] --> B(API Endpoint / CLI)
+    B --> C{Preprocessing Module}
+    C --> D[Feature Engineered Data]
+    D --> E(ML Churn Prediction Model)
+    E --> F{Churn Probability}
+    F --> G(Gemini AI - Marketing Offer Generation)
+    G --> H[Personalized Marketing Offer]
+    H --> B
+    B --> I[Prediction Result & Offer]
 ```
 
----
+**Flow Description:**
+1.  **Raw Customer Data** is fed into the system either through the FastAPI `/predict` endpoint or the CLI.
+2.  The **Preprocessing Module** (derived from `02_feature_engineering.ipynb`) transforms this raw data. This involves data cleaning, creating engineered features (e.g., tenure groups, charge-based features, service usage counts), and encoding categorical variables (one-hot encoding) and scaling numerical features using a pre-trained `StandardScaler`.
+3.  The **ML Churn Prediction Model** (a pre-trained Logistic Regression model loaded from `churn_model.pkl`) takes the preprocessed data and calculates the **Churn Probability**.
+4.  The **Churn Probability** along with the original **Raw Customer Data** is then sent to **Gemini AI** for **Marketing Offer Generation**.
+5.  **Gemini AI** analyzes the customer profile and churn risk to produce a **Personalized Marketing Offer**.
+6.  Finally, the **Prediction Result & Offer** (churn probability and marketing message) is returned to the user via the API response or displayed in the CLI.
 
-## 🚀 Getting Started
+## 💡 Technical Rationale: Why Combine LLM with ML?
 
-### Prerequisites
+The synergy between traditional Machine Learning (ML) models and Large Language Models (LLMs) like Gemini offers a powerful solution that transcends the capabilities of either technology alone.
 
-- Python 3.9 or higher
-- pip package manager
-- **Dataset**: Telco Customer Churn from Kaggle
+-   **ML for Quantitative Precision:** Our Logistic Regression model is highly effective at identifying subtle patterns in structured customer data to accurately quantify churn risk. It provides a precise, data-driven probability score, which is a core analytical strength of ML. This numerical output is critical for understanding the *likelihood* of churn.
 
-### Installation
+-   **LLM for Qualitative Nuance & Actionability:** While the ML model tells us *if* a customer is likely to churn and by *how much*, it doesn't inherently suggest *what to do* about it in a human-friendly way. This is where Gemini shines. LLMs are trained on vast amounts of text data, allowing them to understand context, synthesize information, and generate creative, coherent, and persuasive human-like language. By feeding Gemini the churn probability and the customer's detailed profile, we enable it to:
+    *   **Contextualize:** Understand the specific services, contract terms, and demographic factors influencing the customer's situation.
+    *   **Personalize:** Generate an offer that speaks directly to the customer's likely needs or pain points, making it far more impactful than a generic message.
+    *   **Recommend Actionable Strategies:** Suggest specific discounts, service upgrades, contract modifications, or support options that are relevant to the customer's profile and designed to mitigate their churn risk.
 
-1. **Clone the repository**
+**In essence, the ML model provides the "what" (churn risk), and the LLM translates this "what" into an intelligent, personalized, and actionable "how" (retention strategy).** This combination transforms a raw prediction into a directly usable business tool.
+
+## ⚙️ Installation
+
+To set up and run this project locally, follow these steps:
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your_username/customer-churn-analysis.git
+    cd customer-churn-analysis
+    ```
+    *(Note: Replace `your_username` with the actual GitHub username if this project were publicly hosted.)*
+
+2.  **Create and activate a virtual environment:**
+    It's recommended to use a virtual environment to manage dependencies.
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    ```
+
+3.  **Install Python dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+4.  **Set up Gemini API Key:**
+    Obtain your Gemini API key from [Google AI Studio](https://ai.google.dev/).
+    Create a `.env` file in the project root directory (next to `main.py`) and add your API key:
+    ```
+    GEMINI_API_KEY=YOUR_GEMINI_API_KEY_HERE
+    ```
+    *Refer to `.env.example` for the correct format.*
+
+5.  **Prepare ML Artifacts:**
+    Ensure that the `models/churn_model.pkl` and `data/processed/feature_names.txt` files exist. These are generated by running the `save_pipeline.py` script.
+    ```bash
+    python3 save_pipeline.py
+    ```
+
+## 🚀 Usage
+
+The project can be used in two modes: FastAPI (Web API) and CLI (Command Line Interface).
+
+### 🌐 FastAPI (Web API)
+
+Run the FastAPI application:
 
 ```bash
-git clone https://github.com/yourusername/customer-churn-analysis.git
-cd customer-churn-analysis
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-2. **Create virtual environment** (recommended)
+Once running, access the interactive API documentation (Swagger UI) at `http://localhost:8000/docs`. You can use this interface to test the `/predict` endpoint.
 
+### 💻 CLI (Command Line Interface)
+
+To use the CLI mode, provide the `--cli` argument along with customer data features.
+
+**Example:**
 ```bash
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# Mac/Linux
-source venv/bin/activate
+python3 main.py --cli \
+    --gender Female \
+    --senior_citizen 0 \
+    --partner Yes \
+    --dependents No \
+    --tenure 12 \
+    --phone_service Yes \
+    --multiple_lines Yes \
+    --internet_service Fiber optic \
+    --online_security No \
+    --online_backup Yes \
+    --device_protection No \
+    --tech_support No \
+    --streaming_tv Yes \
+    --streaming_movies No \
+    --contract Month-to-month \
+    --paperless_billing Yes \
+    --payment_method Electronic check \
+    --monthly_charges 89.90 \
+    --total_charges 1078.80
 ```
-
-3. **Install dependencies**
-
-```bash
-pip install -r requirements.txt
-```
-
-4. **Download dataset**
-
-- Download from [Kaggle - Telco Customer Churn](https://www.kaggle.com/datasets/blastchar/telco-customer-churn?select=WA_Fn-UseC_-Telco-Customer-Churn.csv)
-- Place `WA_Fn-UseC_-Telco-Customer-Churn.csv` in `data/raw/` folder
-- Rename to `Telco-Customer-Churn.csv`
-
-**Or if you already have the file:**
-
-```bash
-# Create data directories
-mkdir -p data/raw data/processed
-
-# Place your file in data/raw/
-cp your-downloaded-file.csv data/raw/Telco-Customer-Churn.csv
-```
-
----
-
-## 📓 Usage
-
-### Running the Analysis
-
-**Option 1: Jupyter Notebooks** (Recommended for exploration)
-
-```bash
-jupyter notebook
-```
-
-Then open notebooks in order:
-
-1. `01_data_exploration.ipynb` - Understand the data
-2. `02_feature_engineering.ipynb` - Prepare features
-3. `03_modeling.ipynb` - Train models
-4. `04_evaluation.ipynb` - Business impact
-
-**Option 2: Python Scripts** (For production)
-
-```python
-# Load model and predict
-import joblib
-import pandas as pd
-
-# Load trained model
-model = joblib.load('models/best_model.pkl')
-scaler = joblib.load('models/scaler.pkl')
-
-# Prepare new customer data
-new_customer = pd.DataFrame({
-    # ... customer features
-})
-
-# Make prediction
-churn_probability = model.predict_proba(new_customer)[:, 1]
-
-# Assign risk segment
-if churn_probability[0] >= 0.7:
-    risk = 'High Risk - Immediate Intervention'
-elif churn_probability[0] >= 0.4:
-    risk = 'Medium Risk - Monitor Closely'
-else:
-    risk = 'Low Risk - Standard Engagement'
-
-print(f"Churn Probability: {churn_probability[0]:.2%}")
-print(f"Risk Segment: {risk}")
-```
-
----
-
-## 🔍 Analysis Workflow
-
-### 1. Data Exploration (`01_data_exploration.ipynb`)
-
-- **Dataset**: 7,043 customers with 21 features
-- **Target**: Binary churn indicator (27% churn rate)
-- **Key Findings**:
-  - Month-to-month contracts show 3-4x higher churn
-  - First 12 months are critical retention period
-  - Churned customers pay 15-20% higher monthly charges
-
-### 2. Feature Engineering (`02_feature_engineering.ipynb`)
-
-- Created **16 engineered features**:
-
-  - Tenure-based: `is_new_customer`, `is_long_term`, `tenure_bins`
-  - Charge-based: `avg_monthly_spend`, `price_increase`, `high_monthly_charge`
-  - Service-based: `total_services`, `has_internet`, `has_tech_support`
-  - Contract-based: `is_month_to_month`, `has_auto_payment`
-  - Demographic: `has_family`, `is_single_no_deps`
-
-- Encoded categorical variables (one-hot + label encoding)
-- Scaled numerical features (StandardScaler)
-- Final dataset: **7,043 samples × 50+ features**
-
-### 3. Model Development (`03_modeling.ipynb`)
-
-- **Models Evaluated**:
-
-  - Logistic Regression (baseline)
-  - Decision Tree
-  - Random Forest
-  - Gradient Boosting
-
-- **Hyperparameter Tuning**: GridSearchCV with 5-fold cross-validation
-- **Best Model**: Random Forest (Tuned)
-  - n_estimators=100, max_depth=15
-  - F1-Score: 0.77
-  - Achieved target 80%+ recall
-
-### 4. Business Impact (`04_evaluation.ipynb`)
-
-- **Risk Segmentation**:
-
-  - High Risk (≥70% prob): Immediate intervention
-  - Medium Risk (40-69% prob): Proactive monitoring
-  - Low Risk (<40% prob): Standard engagement
-
-- **Financial Analysis**:
-  - Campaign Cost: $8,500
-  - Revenue Saved: $170,000
-  - Net Benefit: $161,500
-  - ROI: 1,900%
-
----
-
-## 💡 Key Insights
-
-### 1. Contract Type is Critical
-
-- Month-to-month customers churn at **42%** vs 11% for two-year contracts
-- **Recommendation**: Incentivize long-term contracts with discounts/perks
-
-### 2. Early Tenure is High-Risk
-
-- **35% of churn** occurs in first 3 months
-- **Recommendation**: Enhanced onboarding program for new customers
-
-### 3. Pricing Sensitivity
-
-- Churned customers pay ~$15-20 more per month
-- **Recommendation**: Review pricing strategy and value proposition
-
-### 4. Predictive Power
-
-- Model identifies **85% of churning customers**
-- **70% precision** minimizes false alarms
-- **Ready for production deployment**
-
----
-
-## 🎯 Business Recommendations
-
-### Immediate Actions (Week 1-2)
-
-- ✅ Deploy model to production
-- ✅ Launch retention campaign for high-risk customers
-- ✅ A/B test contract incentives
-
-### Short-Term (Month 1-3)
-
-- 📋 Implement enhanced onboarding
-- 📋 Create early warning dashboard
-- 📋 Review pricing for high-churn segments
-
-### Long-Term (Quarter 1-2)
-
-- 🎯 Build real-time churn prediction API
-- 🎯 Integrate with CRM systems
-- 🎯 Expand to customer lifetime value prediction
-
----
-
-## 📈 Model Performance
-
-### Confusion Matrix
-
-|                      | Predicted: No Churn | Predicted: Churn |
-| -------------------- | ------------------- | ---------------- |
-| **Actual: No Churn** | 950 (TN)            | 80 (FP)          |
-| **Actual: Churn**    | 45 (FN)             | 334 (TP)         |
-
-- **True Negatives**: 950 correctly predicted retained customers
-- **False Positives**: 80 false alarms (acceptable for retention campaigns)
-- **False Negatives**: 45 missed churners (⚠️ minimize this!)
-- **True Positives**: 334 correctly identified churners
-
----
-
-## 🛠️ Technologies Used
-
-- **Python 3.9+** - Core programming language
-- **Pandas & NumPy** - Data manipulation
-- **Scikit-learn** - Machine learning
-- **Matplotlib & Seaborn** - Data visualization
-- **Jupyter** - Interactive analysis
-- **Git & GitHub** - Version control
-
----
-
-## 📚 Documentation
-
-- [Data Dictionary](docs/data_dictionary.md) - Feature descriptions
-- [Modeling Methodology](docs/methodology.md) - Technical approach
-- [Business Case](docs/business_case.md) - ROI analysis
-- [Deployment Guide](docs/deployment.md) - Production setup
-
----
+*(Note: `--total_charges` is optional. If omitted, it will be calculated from `monthly_charges` and `tenure`.)*
+
+### 🐳 Docker Deployment
+
+To build and run the application using Docker:
+
+1.  **Build the Docker image:**
+    ```bash
+    docker build -t customer-churn-app .
+    ```
+
+2.  **Run the Docker container:**
+    For the FastAPI application:
+    ```bash
+    docker run -p 8000:8000 -e GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE" customer-churn-app
+    ```
+    For CLI mode within Docker:
+    ```bash
+    docker run -e GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE" customer-churn-app python3 main.py --cli --gender Male --senior_citizen 0 --partner No --dependents No --tenure 1 --phone_service Yes --multiple_lines No --internet_service DSL --online_security No --online_backup No --device_protection No --tech_support No --streaming_tv No --streaming_movies No --contract Month-to-month --paperless_billing Yes --payment_method Electronic check --monthly_charges 45.0
+    ```
+    *(Remember to replace `"YOUR_GEMINI_API_KEY_HERE"` with your actual API key.)*
+
+--- 
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome! Please feel free to open issues or submit pull requests.
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open Pull Request
+## 📄 License
 
----
-
-## 📝 License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-## 👤 Author
-
-**Yunjae Jung**
-
-- LinkedIn: [linkedin.com/in/yunjae-jung-99a13b221](https://www.linkedin.com/in/yunjae-jung-99a13b221/)
-- GitHub: [@yoonjae0402](https://github.com/yoonjae0402)
-- Email: yoonjae0402@gmail.com
-
----
-
-## 🙏 Acknowledgments
-
-- **Dataset**: Kaggle Telco Customer Churn dataset
-- **Inspiration**: IBM Cognos Analytics sample datasets
-- **Libraries**: scikit-learn, pandas, matplotlib communities
-- **Resources**: Towards Data Science, Kaggle kernels
-
----
-
-**Note**: This is a portfolio/educational project demonstrating end-to-end data science workflow. The model and insights should be validated with domain experts before production deployment.
-
----
-
-_Last Updated: January 2026_
+This project is licensed under the MIT License - see the `LICENSE` file for details.
