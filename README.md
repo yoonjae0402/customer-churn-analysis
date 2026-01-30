@@ -19,24 +19,25 @@ The system's architecture is designed to integrate predictive analytics with gen
 
 ```mermaid
 graph TD
-    A[Raw Customer Data] --> B(API Endpoint / CLI)
-    B --> C{Preprocessing Module}
-    C --> D[Feature Engineered Data]
-    D --> E(ML Churn Prediction Model)
-    E --> F{Churn Probability}
-    F --> G(Gemini AI - Marketing Offer Generation)
-    G --> H[Personalized Marketing Offer]
-    H --> B
-    B --> I[Prediction Result & Offer]
+    A[User Request (API / CLI)] --> B(FastAPI Endpoint / CLI Input)
+    B --> C{Pydantic Validation}
+    C --> D{Preprocessing Module}
+    D --> E[Feature Engineered Data]
+    E --> F(ML Churn Prediction Model)
+    F --> G[Churn Probability]
+    G --> H(Gemini API: Offer Generation)
+    H --> I[Personalized Marketing Offer]
+    G & I --> J[Final Response / CLI Output]
 ```
 
 **Flow Description:**
-1.  **Raw Customer Data** is fed into the system either through the FastAPI `/predict` endpoint or the CLI.
-2.  The **Preprocessing Module** (derived from `02_feature_engineering.ipynb`) transforms this raw data. This involves data cleaning, creating engineered features (e.g., tenure groups, charge-based features, service usage counts), and encoding categorical variables (one-hot encoding) and scaling numerical features using a pre-trained `StandardScaler`.
-3.  The **ML Churn Prediction Model** (a pre-trained Logistic Regression model loaded from `churn_model.pkl`) takes the preprocessed data and calculates the **Churn Probability**.
-4.  The **Churn Probability** along with the original **Raw Customer Data** is then sent to **Gemini AI** for **Marketing Offer Generation**.
-5.  **Gemini AI** analyzes the customer profile and churn risk to produce a **Personalized Marketing Offer**.
-6.  Finally, the **Prediction Result & Offer** (churn probability and marketing message) is returned to the user via the API response or displayed in the CLI.
+1.  **User Request** originates from either the FastAPI `/predict` endpoint or the CLI.
+2.  The input data undergoes **Pydantic Validation** to ensure correctness and adherence to defined constraints.
+3.  The **Preprocessing Module** (derived from `02_feature_engineering.ipynb`) transforms this raw data. This involves data cleaning, creating engineered features (e.g., tenure groups, charge-based features, service usage counts), and encoding categorical variables (one-hot encoding) and scaling numerical features using a pre-trained `StandardScaler`.
+4.  The **ML Churn Prediction Model** (a pre-trained Logistic Regression model loaded from `churn_model.pkl`) takes the preprocessed data and calculates the **Churn Probability**.
+5.  The **Churn Probability** along with the original **Raw Customer Data** is then sent to **Gemini AI** for **Marketing Offer Generation**.
+6.  **Gemini AI** analyzes the customer profile and churn risk to produce a **Personalized Marketing Offer**.
+7.  Finally, the **Prediction Result & Offer** (churn probability and marketing message) is returned to the user via the API response or displayed in the CLI.
 
 ## 💡 Technical Rationale: Why Combine LLM with ML?
 
@@ -50,6 +51,21 @@ The synergy between traditional Machine Learning (ML) models and Large Language 
     *   **Recommend Actionable Strategies:** Suggest specific discounts, service upgrades, contract modifications, or support options that are relevant to the customer's profile and designed to mitigate their churn risk.
 
 **In essence, the ML model provides the "what" (churn risk), and the LLM translates this "what" into an intelligent, personalized, and actionable "how" (retention strategy).** This combination transforms a raw prediction into a directly usable business tool.
+
+## 🛠️ Technical Challenges & Solutions
+
+### Asynchronous Processing for Latency Optimization
+
+A key consideration for building a responsive real-time prediction and generation service is managing latency, especially when integrating external APIs like Google's Gemini. Traditional synchronous processing would block the server while waiting for I/O operations (e.g., calling the Gemini API, reading/writing files). This significantly degrades performance and limits the number of concurrent requests the server can handle.
+
+**Solution:** This project is built using Python's `asyncio` framework, FastAPI, and `await`able operations to enable highly concurrent and efficient request handling.
+
+-   **FastAPI's `async def` Endpoints:** FastAPI is inherently designed for asynchronous operations. All API endpoints (`/predict`, `/health`) and core logic functions (`preprocess_data`, `predict_churn`, `generate_marketing_offer`) are defined as `async def`.
+-   **Non-Blocking I/O:** When the application makes an external call (e.g., `await model_gemini.generate_content_async(prompt)` to the Gemini API) or performs an I/O-bound task, it `awaits` the result. During this `await` period, instead of blocking the entire server, FastAPI can switch to processing other incoming requests.
+-   **Improved Concurrency:** This pattern allows the server to handle many simultaneous user requests efficiently, maximizing throughput and reducing perceived latency, even when individual requests involve time-consuming external API calls.
+-   **Model Loading as Singleton:** Furthermore, the ML model and scaler are loaded only once at application startup using a Singleton pattern. This prevents redundant disk I/O for each request, contributing to lower latency for inference.
+
+This asynchronous design ensures that the application remains fast and responsive under load, providing a smooth user experience.
 
 ## ⚙️ Installation
 
