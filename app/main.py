@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import numpy as np
 
-import google.generativeai as genai
+from google import genai
 
 # Rich imports (for CLI mode)
 from rich.console import Console
@@ -70,8 +70,9 @@ if not GEMINI_API_KEY:
     raise ChurnException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                          detail="Gemini API key is not configured.", ex_type="ConfigurationError")
 
-genai.configure(api_key=GEMINI_API_KEY)
-logger.info("Gemini API configured successfully.")
+# Initialize Gemini client with new google.genai package
+gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+logger.info("Gemini API client initialized successfully.")
 
 MODELS_DIR: Path = Path('./models/')
 FEATURE_NAMES_PATH: Path = Path('./data/processed/feature_names.txt')
@@ -295,9 +296,9 @@ async def preprocess_data(raw_data: CustomerData) -> pd.DataFrame:
     # --- Data Cleaning ---
     if df['TotalCharges'].iloc[0] is None:
         df['TotalCharges'] = df['MonthlyCharges'] * df['tenure']
-        df.loc[df['tenure'] == 0, 'TotalCharges'] = 0 
+        df.loc[df['tenure'] == 0, 'TotalCharges'] = 0
     df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
-    df['TotalCharges'].fillna(0, inplace=True) 
+    df['TotalCharges'] = df['TotalCharges'].fillna(0) 
 
     # --- Feature Engineering ---
     bins = [0, 12, 24, 48, 72]
@@ -318,16 +319,16 @@ async def preprocess_data(raw_data: CustomerData) -> pd.DataFrame:
     # 2. Charge-based features
     df['avg_monthly_spend'] = df['TotalCharges'] / (df['tenure'].replace(0, np.nan) + 1)
     df['charge_per_tenure'] = df['MonthlyCharges'] / (df['tenure'].replace(0, np.nan) + 1)
-    
-    df['avg_monthly_spend'].fillna(0, inplace=True)
-    df['charge_per_tenure'].fillna(0, inplace=True)
+
+    df['avg_monthly_spend'] = df['avg_monthly_spend'].fillna(0)
+    df['charge_per_tenure'] = df['charge_per_tenure'].fillna(0)
 
     df['price_increase'] = (df['MonthlyCharges'] > df['avg_monthly_spend']).astype(int)
     
     try:
         sample_df = pd.read_csv(DATA_DIR / 'data_after_eda.csv')
         sample_df['TotalCharges'] = pd.to_numeric(sample_df['TotalCharges'], errors='coerce')
-        sample_df['TotalCharges'].fillna(0, inplace=True)
+        sample_df['TotalCharges'] = sample_df['TotalCharges'].fillna(0)
         sample_df['avg_monthly_spend'] = sample_df['TotalCharges'] / (sample_df['tenure'].replace(0, np.nan) + 1).fillna(1)
         monthly_median_ref: float = sample_df['MonthlyCharges'].median()
         logger.info("Successfully loaded data_after_eda.csv for reference median.")
@@ -477,8 +478,10 @@ async def generate_marketing_offer(churn_probability: float, customer_data: Cust
     """
 
     try:
-        gemini_model = genai.GenerativeModel('gemini-2.5-flash')
-        response = await gemini_model.generate_content_async(prompt)
+        response = await gemini_client.aio.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
         marketing_offer: str = response.text
         logger.info("Marketing offer generated successfully by Gemini.")
         return marketing_offer
