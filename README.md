@@ -20,6 +20,13 @@ An end-to-end machine learning project for predicting customer churn and generat
 | Recall | 52.9% |
 | Estimated ROI | 1,252% |
 
+### Model Limitations
+
+- **Training Data**: Trained on US telecom customer data; may require retraining for other markets or industries
+- **Class Imbalance**: Dataset has 26.5% churn rate - recall on churning customers is 52.9%
+- **Feature Drift**: Model performance may degrade if customer behavior patterns change significantly over time
+- **Static Predictions**: Model provides point-in-time predictions; not designed for time-series forecasting
+
 ### Visualizations
 
 <p align="center">
@@ -59,7 +66,7 @@ pip install -r app/requirements.txt
 3. Run notebooks in order:
 ```bash
 jupyter notebook
-# Open notebooks/exploration.ipynb
+# Open notebooks/01_exploration.ipynb
 ```
 
 Each notebook is self-contained with detailed markdown explanations.
@@ -206,6 +213,45 @@ cd app && uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 Access Swagger UI at `http://localhost:8000/docs`
 
+**Example API Call:**
+```bash
+curl -X POST "http://localhost:8000/predict" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "gender": "Female",
+    "SeniorCitizen": 0,
+    "Partner": "Yes",
+    "Dependents": "No",
+    "tenure": 12,
+    "PhoneService": "Yes",
+    "MultipleLines": "No",
+    "InternetService": "Fiber optic",
+    "OnlineSecurity": "No",
+    "OnlineBackup": "Yes",
+    "DeviceProtection": "No",
+    "TechSupport": "No",
+    "StreamingTV": "Yes",
+    "StreamingMovies": "No",
+    "Contract": "Month-to-month",
+    "PaperlessBilling": "Yes",
+    "PaymentMethod": "Electronic check",
+    "MonthlyCharges": 89.90,
+    "TotalCharges": 1078.80
+  }'
+```
+
+**Example Response:**
+```json
+{
+  "churn_probability": 0.78,
+  "marketing_offer": "We noticed you've been with us for a year now...",
+  "metadata": {
+    "model_version": "1.0.0",
+    "latency_ms": 1250.5
+  }
+}
+```
+
 ### CLI (Command Line Interface)
 
 ```bash
@@ -277,10 +323,14 @@ customer-churn-analysis/
 │       ├── scaler.pkl            # Feature scaler
 │       └── model_comparison.csv  # Model benchmarks
 ├── notebooks/                    # Jupyter notebooks
-│   ├── exploration.ipynb         # Data exploration
+│   ├── 01_exploration.ipynb      # Data exploration
 │   ├── 02_feature_engineering.ipynb
 │   ├── 03_modeling.ipynb
 │   └── 04_evaluation.ipynb
+├── tests/                        # Unit and integration tests
+│   ├── test_model.py             # Model loading and prediction tests
+│   ├── test_api.py               # API endpoint tests
+│   └── conftest.py               # Pytest configuration
 ├── src/                          # Reusable utility modules
 │   ├── data_loader.py            # Data loading utilities
 │   ├── preprocessing.py          # Feature engineering
@@ -295,6 +345,8 @@ customer-churn-analysis/
 │   ├── figures/                  # Visualizations
 │   ├── business_impact.csv       # ROI calculations
 │   └── customer_risk_segments.csv
+├── requirements-dev.txt          # Development dependencies
+├── pytest.ini                    # Pytest configuration
 └── README.md
 ```
 
@@ -330,6 +382,23 @@ pip install -r app/requirements.txt --upgrade
 - Run `cd app && python3 save_pipeline.py` to generate model artifacts
 
 Need help? [Open an issue](https://github.com/yoonjae0402/customer-churn-analysis/issues)
+
+---
+
+## Testing
+
+Run the test suite to verify the installation:
+
+```bash
+# Install dev dependencies
+pip install -r requirements-dev.txt
+
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage report
+pytest tests/ -v --cov=app --cov-report=html
+```
 
 ---
 

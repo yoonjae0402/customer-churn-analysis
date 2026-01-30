@@ -12,6 +12,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import numpy as np
 
@@ -244,7 +245,17 @@ class CustomerData(BaseModel):
 # --- FastAPI App Initialization ---
 app = FastAPI(
     title="Customer Churn Prediction API",
-    description="Predicts customer churn and generates personalized marketing offers using Gemini AI."
+    description="Predicts customer churn and generates personalized marketing offers using Gemini AI.",
+    version=ChurnModelLoader.MODEL_VERSION
+)
+
+# --- CORS Middleware Configuration ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure specific origins in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.exception_handler(ChurnException)

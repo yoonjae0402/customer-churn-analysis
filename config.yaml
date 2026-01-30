@@ -33,12 +33,10 @@ features:
 
 # Model Settings
 model:
-  algorithm: "RandomForest"
+  algorithm: "LogisticRegression"  # Best performing model (ROC-AUC: 0.847)
   hyperparameters:
-    n_estimators: 100
-    max_depth: 15
-    min_samples_split: 5
-    min_samples_leaf: 2
+    C: 1.0
+    max_iter: 1000
     random_state: 42
 
   # Model Selection Criteria

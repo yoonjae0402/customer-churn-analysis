@@ -62,3 +62,16 @@ logs/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Large model files - use Git LFS for these or download separately
+# Keep only production model files, exclude experimental models
+app/models/random_forest.pkl
+app/models/random_forest_tuned.pkl
+app/models/decision_tree.pkl
+app/models/gradient_boosting.pkl
+app/models/gradient_boosting_tuned.pkl
+
+# Data files - should be downloaded from Kaggle
+# Uncomment below if you want to exclude data from git
+# app/data/raw/*.csv
+# app/data/processed/*.csv

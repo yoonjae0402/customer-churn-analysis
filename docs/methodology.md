@@ -8,7 +8,7 @@ This document describes the technical approach used for predicting customer chur
 
 ## 1. Data Exploration
 
-**Notebook:** `notebooks/exploration.ipynb`
+**Notebook:** `notebooks/01_exploration.ipynb`
 
 ### Key Findings
 
@@ -142,8 +142,11 @@ The ML model provides churn probability, while Gemini AI generates personalized 
 To reproduce results:
 
 ```bash
+# Install dependencies
+pip install -r requirements-dev.txt
+
 # Run notebooks in order
-jupyter notebook notebooks/exploration.ipynb
+jupyter notebook notebooks/01_exploration.ipynb
 jupyter notebook notebooks/02_feature_engineering.ipynb
 jupyter notebook notebooks/03_modeling.ipynb
 jupyter notebook notebooks/04_evaluation.ipynb

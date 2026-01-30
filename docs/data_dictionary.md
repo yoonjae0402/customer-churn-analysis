@@ -56,7 +56,7 @@
 
 ## Engineered Features
 
-Features created during preprocessing (`02_feature_engineering.ipynb`):
+Features created during preprocessing (`notebooks/02_feature_engineering.ipynb`):
 
 ### Tenure-Based Features
 
