@@ -3,6 +3,7 @@ import re
 import argparse
 import sys
 import logging
+import time
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
@@ -10,7 +11,7 @@ import joblib
 import pandas as pd
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import numpy as np
 
 import google.generativeai as genai
@@ -69,6 +70,7 @@ DATA_DIR: Path = Path('data/processed/') # Used for loading data_after_eda.csv f
 
 # --- Singleton for Model Loading ---
 class ChurnModelLoader:
+    MODEL_VERSION: str = "1.0.0" # Hardcoded version for now
     _instance: Optional["ChurnModelLoader"] = None
     _scaler: Any = None
     _model: Any = None
@@ -167,25 +169,25 @@ except ChurnException as e:
 
 # --- Define Input Pydantic Model ---
 class CustomerData(BaseModel):
-    gender: str 
-    SeniorCitizen: int 
-    Partner: str 
-    Dependents: str 
-    tenure: int
-    PhoneService: str 
-    MultipleLines: str 
-    InternetService: str 
-    OnlineSecurity: str 
-    OnlineBackup: str 
-    DeviceProtection: str 
-    TechSupport: str 
-    StreamingTV: str 
-    StreamingMovies: str 
-    Contract: str 
-    PaperlessBilling: str 
-    PaymentMethod: str 
-    MonthlyCharges: float
-    TotalCharges: Optional[float] = None 
+    gender: str = Field(..., description="Customer's gender (Male/Female)")
+    SeniorCitizen: int = Field(..., ge=0, le=1, description="Is customer a senior citizen? (0 or 1)")
+    Partner: str = Field(..., description="Does customer have a partner? (Yes/No)")
+    Dependents: str = Field(..., description="Does customer have dependents? (Yes/No)")
+    tenure: int = Field(..., ge=0, description="Number of months customer has stayed with the company")
+    PhoneService: str = Field(..., description="Does customer have phone service? (Yes/No)")
+    MultipleLines: str = Field(..., description="Does customer have multiple lines? (Yes/No/No phone service)")
+    InternetService: str = Field(..., description="Customer's internet service type (DSL/Fiber optic/No)")
+    OnlineSecurity: str = Field(..., description="Does customer have online security? (No/Yes/No internet service)")
+    OnlineBackup: str = Field(..., description="Does customer have online backup? (No/Yes/No internet service)")
+    DeviceProtection: str = Field(..., description="Does customer have device protection? (No/Yes/No internet service)")
+    TechSupport: str = Field(..., description="Does customer have tech support? (No/Yes/No internet service)")
+    StreamingTV: str = Field(..., description="Does customer have streaming TV? (No/Yes/No internet service)")
+    StreamingMovies: str = Field(..., description="Does customer have streaming movies? (No/Yes/No internet service)")
+    Contract: str = Field(..., description="Customer's contract type (Month-to-month/One year/Two year)")
+    PaperlessBilling: str = Field(..., description="Does customer have paperless billing? (Yes/No)")
+    PaymentMethod: str = Field(..., description="Customer's payment method (Electronic check/Mailed check/Bank transfer (automatic)/Credit card (automatic))")
+    MonthlyCharges: float = Field(..., gt=0, description="Customer's monthly charges")
+    TotalCharges: Optional[float] = Field(None, ge=0, description="Customer's total charges (optional, will be calculated from MonthlyCharges * tenure if not provided)") 
 
 # --- FastAPI App Initialization ---
 app = FastAPI(
@@ -378,24 +380,41 @@ async def generate_marketing_offer(churn_probability: float, customer_data: Cust
                                  detail=detail, ex_type="GeminiAPIError")
 
 
+# --- Health Check Endpoint ---
+@app.get("/health", response_model=Dict[str, Any]) # Changed to Any because model_version is str
+async def health_check() -> Dict[str, Any]:
+    """
+    Health check endpoint to verify server status.
+    """
+    logger.info("Health check endpoint accessed.")
+    return {"status": "healthy", "model_version": ChurnModelLoader.MODEL_VERSION, "timestamp": time.time()}
+
+
 # --- API Endpoint ---
 @app.post("/predict")
 async def predict_churn_endpoint(customer_data: CustomerData) -> Dict[str, Any]:
     """
     Predicts customer churn probability and generates a personalized marketing offer.
     """
-    logger.info("Received API request for churn prediction.")
-    try:
-        processed_df: pd.DataFrame = await preprocess_data(customer_data)
-        churn_prob: float = await predict_churn(processed_df)
-        marketing_offer: str = await generate_marketing_offer(churn_prob, customer_data)
-
-        logger.info("API request completed successfully.")
-        return {
-            "churn_probability": churn_prob,
-            "marketing_offer": marketing_offer
-        }
-    except ChurnException:
+            logger.info("Received API request for churn prediction.")
+            start_time: float = time.time() # Start measuring latency
+            try:
+                processed_df: pd.DataFrame = await preprocess_data(customer_data)
+                churn_prob: float = await predict_churn(processed_df)
+                marketing_offer: str = await generate_marketing_offer(churn_prob, customer_data)
+    
+                end_time: float = time.time() # End measuring latency
+                latency_ms: float = round((end_time - start_time) * 1000, 2)
+    
+                logger.info("API request completed successfully.")
+                return {
+                    "churn_probability": churn_prob,
+                    "marketing_offer": marketing_offer,
+                    "metadata": {
+                        "model_version": ChurnModelLoader.MODEL_VERSION,
+                        "latency_ms": latency_ms
+                    }
+                }    except ChurnException:
         # ChurnException already logged, just re-raise
         raise
     except Exception as e:
