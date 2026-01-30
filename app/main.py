@@ -23,6 +23,9 @@ from rich.table import Table
 from rich.panel import Panel
 from rich.text import Text
 
+# Rich console instance
+console = Console()
+
 # --- Logging Configuration ---
 LOG_FILE = "app.log"
 logger = logging.getLogger(__name__)
@@ -63,16 +66,11 @@ load_dotenv()
 GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     logger.error("GEMINI_API_KEY not found in .env file or environment variables.")
-    raise ChurnException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+    raise ChurnException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                          detail="Gemini API key is not configured.", ex_type="ConfigurationError")
 
-try:
-    genai.configure(api_key=GEMINI_API_KEY)
-    logger.info("Gemini API configured successfully.")
-except Exception as e:
-    logger.error(f"Failed to configure Gemini API: {e}")
-    raise ChurnException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                         detail=f"Failed to configure Gemini API: {e}", ex_type="ConfigurationError")
+genai.configure(api_key=GEMINI_API_KEY)
+logger.info("Gemini API configured successfully.")
 
 MODELS_DIR: Path = Path('./models/')
 FEATURE_NAMES_PATH: Path = Path('./data/processed/feature_names.txt')
@@ -468,17 +466,16 @@ async def generate_marketing_offer(churn_probability: float, customer_data: Cust
     """
 
     try:
-        gemini_model = genai.GenerativeModel('gemini-pro')
+        gemini_model = genai.GenerativeModel('gemini-2.5-flash')
         response = await gemini_model.generate_content_async(prompt)
         marketing_offer: str = response.text
         logger.info("Marketing offer generated successfully by Gemini.")
         return marketing_offer
     except Exception as e:
-        detail = f"Gemini AI error during offer generation: {e}"
+        detail = f"Gemini API error during offer generation: {e}"
         logger.error(detail)
-        # For CLI, print to console, for API, raise ChurnException
         if sys.argv[1:] and "--cli" in sys.argv[1:]:
-             return "Error generating marketing offer."
+            return "Error generating marketing offer."
         else:
             raise ChurnException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                  detail=detail, ex_type="GeminiAPIError")
@@ -514,29 +511,26 @@ async def predict_churn_endpoint(customer_data: CustomerData) -> Dict[str, Any]:
     Raises:
         ChurnException: If any error occurs during preprocessing, prediction, or Gemini API call.
     """
-    """
-    Predicts customer churn probability and generates a personalized marketing offer.
-    """
-            logger.info("Received API request for churn prediction.")
-            start_time: float = time.time() # Start measuring latency
-            try:
-                processed_df: pd.DataFrame = await preprocess_data(customer_data)
-                churn_prob: float = await predict_churn(processed_df)
-                marketing_offer: str = await generate_marketing_offer(churn_prob, customer_data)
-    
-                end_time: float = time.time() # End measuring latency
-                latency_ms: float = round((end_time - start_time) * 1000, 2)
-    
-                logger.info("API request completed successfully.")
-                return {
-                    "churn_probability": churn_prob,
-                    "marketing_offer": marketing_offer,
-                    "metadata": {
-                        "model_version": ChurnModelLoader.MODEL_VERSION,
-                        "latency_ms": latency_ms
-                    }
-                }    except ChurnException:
-        # ChurnException already logged, just re-raise
+    logger.info("Received API request for churn prediction.")
+    start_time: float = time.time()
+    try:
+        processed_df: pd.DataFrame = await preprocess_data(customer_data)
+        churn_prob: float = await predict_churn(processed_df)
+        marketing_offer: str = await generate_marketing_offer(churn_prob, customer_data)
+
+        end_time: float = time.time()
+        latency_ms: float = round((end_time - start_time) * 1000, 2)
+
+        logger.info("API request completed successfully.")
+        return {
+            "churn_probability": churn_prob,
+            "marketing_offer": marketing_offer,
+            "metadata": {
+                "model_version": ChurnModelLoader.MODEL_VERSION,
+                "latency_ms": latency_ms
+            }
+        }
+    except ChurnException:
         raise
     except Exception as e:
         detail = f"An unexpected error occurred in API endpoint: {e}"
@@ -621,12 +615,22 @@ if __name__ == "__main__":
 
     if args.cli:
         logger.info("Running in CLI mode.")
+        # Direct mapping from Pydantic field names to argparse argument names
+        field_to_arg = {
+            'gender': 'gender', 'SeniorCitizen': 'senior_citizen', 'Partner': 'partner',
+            'Dependents': 'dependents', 'tenure': 'tenure', 'PhoneService': 'phone_service',
+            'MultipleLines': 'multiple_lines', 'InternetService': 'internet_service',
+            'OnlineSecurity': 'online_security', 'OnlineBackup': 'online_backup',
+            'DeviceProtection': 'device_protection', 'TechSupport': 'tech_support',
+            'StreamingTV': 'streaming_tv', 'StreamingMovies': 'streaming_movies',
+            'Contract': 'contract', 'PaperlessBilling': 'paperless_billing',
+            'PaymentMethod': 'payment_method', 'MonthlyCharges': 'monthly_charges'
+        }
         missing_args: List[str] = []
         for field_name in cli_required_fields:
-            # Convert Pydantic field name to argparse argument name (e.g., SeniorCitizen -> senior_citizen)
-            arg_name = ''.join(['_' + c.lower() if c.isupper() else c for c in field_name]).lstrip('_')
-            if not getattr(args, arg_name, None):
-                 missing_args.append(f"--{arg_name}")
+            arg_name = field_to_arg.get(field_name, field_name.lower())
+            if getattr(args, arg_name, None) is None:
+                missing_args.append(f"--{arg_name}")
         
         if missing_args:
             error_msg: str = f"Missing required CLI arguments: {', '.join(missing_args)}. All fields except --total_charges are required."
