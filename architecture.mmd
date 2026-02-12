@@ -1,0 +1,11 @@
+graph TD
+    A[User Request] --> B(API Endpoint)
+    B --> C{Validation}
+    C --> D{Preprocessing}
+    D --> E[Engineered Data]
+    E --> F(ML Model)
+    F --> G[Churn Probability]
+    G --> H(Gemini API)
+    H --> I[Marketing Offer]
+    G --> J[Final Response]
+    I --> J
