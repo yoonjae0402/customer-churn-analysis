@@ -41,9 +41,9 @@ graph LR
     B --> C{Feature Engineering}
     C --> D[Preprocessing Pipeline]
     D --> E[Model Training]
-    E --> F[Model Artifact (.pkl)]
+    E --> F["Model Artifact (.pkl)"]
     
-    User --> G[FastAPI Endpoint]
+    EndUser[User] --> G[FastAPI Endpoint]
     G --> H(Load Pipeline)
     H --> I[Predict Churn]
     I --> J{Risk Level}
