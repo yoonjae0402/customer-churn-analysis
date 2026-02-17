@@ -72,6 +72,10 @@ customer-churn-analysis/
 │   ├── train.py          # Training script
 │   └── services/         # External services (Gemini)
 ├── tests/                # Unit and integration tests
+├── .gitignore            # Git ignore rules
+├── .pre-commit-config.yaml # Pre-commit hook configuration
+├── Makefile              # Project management commands
+├── pyproject.toml        # Tool configuration (Black, isort, etc.)
 ├── Dockerfile            # Container definition
 ├── requirements.txt      # Project dependencies
 └── README.md
@@ -97,7 +101,7 @@ echo "GEMINI_API_KEY=your_api_key_here" > .env
 ### 3. Training the Model
 Train a new model using the configuration in `config.yaml`:
 ```bash
-python src/train.py --model random_forest
+python -m src.train --model random_forest
 ```
 
 ### 4. Running the API
@@ -111,6 +115,25 @@ Access the Swagger UI at `http://localhost:8000/docs`.
 ```bash
 docker build -t churn-api .
 docker run -p 8000:8000 --env-file .env churn-api
+```
+
+### 6. Development (Code Quality)
+Ensure your code meets quality standards using the Makefile:
+```bash
+# Install dev dependencies
+make install-dev
+
+# Setup pre-commit hooks (runs automatically on commit)
+make setup-hooks
+
+# Run formatting (Black + Isort)
+make format
+
+# Run linting (Flake8 + MyPy)
+make lint
+
+# Run tests
+make test
 ```
 
 ## Model Performance
