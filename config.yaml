@@ -35,12 +35,14 @@ features:
     - "TotalCharges"
 
 model:
-  type: "random_forest"  # Options: logistic_regression, random_forest, xgboost
+  type: "xgboost"  # Options: logistic_regression, random_forest, xgboost
+  # XGBoost has the best performance (ROC-AUC 0.865). See docs/methodology.md.
   params:
     logistic_regression:
       max_iter: 1000
       C: 1.0
       solver: "lbfgs"
+      class_weight: "balanced"  # Correct for 73.5%/26.5% imbalance
     random_forest:
       n_estimators: 100
       max_depth: 10
@@ -49,9 +51,13 @@ model:
       n_estimators: 100
       learning_rate: 0.1
       max_depth: 3
-      scale_pos_weight: 1  # Adjust for imbalance if needed
+      scale_pos_weight: 2.77  # ~(5174 negatives / 1869 positives) corrects class imbalance
+      eval_metric: "aucpr"    # PR-AUC is more informative than ROC-AUC for imbalanced data
 
 training:
   test_size: 0.2
   cv_folds: 5
   scoring: "roc_auc"
+  # Optimal classification threshold is found during training via F1 maximization
+  # and saved alongside the model. Default fallback: 0.5
+  default_threshold: 0.5

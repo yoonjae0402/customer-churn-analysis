@@ -149,10 +149,52 @@ def predict_churn(pipeline: Any, X: pd.DataFrame) -> np.ndarray:
     """
     Predict churn probabilities using the pipeline.
     """
-    # The pipeline handles preprocessing, so we pass raw X
-    # ensure probability of positive class
     if hasattr(pipeline, "predict_proba"):
         return pipeline.predict_proba(X)[:, 1]
     else:
         return pipeline.predict(X)
+
+
+def predict_churn_with_threshold(
+    pipeline: Any, X: pd.DataFrame, threshold: float = 0.5
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Predict churn probabilities and binary labels using a custom threshold.
+
+    Using a threshold tuned to maximise F1 (rather than the default 0.5)
+    significantly improves recall on the minority churn class.
+
+    Args:
+        pipeline: Fitted model pipeline
+        X: Raw feature DataFrame
+        threshold: Classification threshold (from find_optimal_threshold)
+
+    Returns:
+        Tuple of (probabilities, binary_predictions)
+    """
+    probabilities = predict_churn(pipeline, X)
+    binary_predictions = (probabilities >= threshold).astype(int)
+    return probabilities, binary_predictions
+
+
+def load_threshold(model_type: str, models_dir: str = "models") -> float:
+    """
+    Load the saved optimal threshold for a model type.
+
+    Falls back to 0.5 if the threshold file does not exist.
+
+    Args:
+        model_type: Model type string (e.g. "xgboost")
+        models_dir: Directory where model artifacts are stored
+
+    Returns:
+        Optimal threshold float
+    """
+    import json
+
+    threshold_path = Path(models_dir) / f"{model_type}_threshold.json"
+    if threshold_path.exists():
+        data = json.loads(threshold_path.read_text())
+        return float(data["threshold"])
+    return 0.5
 
