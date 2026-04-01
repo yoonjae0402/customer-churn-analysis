@@ -109,16 +109,13 @@ def main():
         std_score = np.std(cv_results[f"test_{metric}"])
         logger.info(f"  {metric}: {mean_score:.4f} (+/- {std_score:.4f})")
 
-    # 8. Train final model on full training set
-    logger.info("Training final model on full training set...")
-    pipeline.fit(X_train, y_train)
-
-    # 9. Calibrate probabilities
-    # Tree models (RF, XGBoost) are often overconfident. Isotonic regression
-    # post-hoc calibration makes predicted probabilities more reliable.
-    logger.info("Calibrating model probabilities (isotonic regression)...")
+    # 8. Train with probability calibration
+    # Tree models (RF, XGBoost) are often overconfident. Wrapping in
+    # CalibratedClassifierCV with isotonic regression and 5-fold CV produces
+    # more reliable probabilities. The pipeline is fitted internally here.
+    logger.info("Training final model with isotonic calibration (5-fold)...")
     calibrated_pipeline = CalibratedClassifierCV(
-        pipeline, cv="prefit", method="isotonic"
+        pipeline, cv=5, method="isotonic"
     )
     calibrated_pipeline.fit(X_train, y_train)
 
