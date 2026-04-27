@@ -10,7 +10,7 @@ multi_line_output = 3
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q --cov=src --cov=api"
+addopts = "-ra -q --cov=src"
 testpaths = [
     "tests",
 ]

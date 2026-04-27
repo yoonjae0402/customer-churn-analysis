@@ -35,8 +35,8 @@ features:
     - "TotalCharges"
 
 model:
-  type: "xgboost"  # Options: logistic_regression, random_forest, xgboost
-  # XGBoost has the best performance (ROC-AUC 0.865). See docs/methodology.md.
+  type: "random_forest"  # Options: logistic_regression, random_forest, xgboost
+  # random_forest is the production model (temporal-split ROC-AUC 0.729). XGBoost requires libomp.
   params:
     logistic_regression:
       max_iter: 1000

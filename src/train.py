@@ -11,9 +11,9 @@ from sklearn.metrics import classification_report, roc_auc_score
 
 from src.config import config
 from src.logger import logger
-from src.data_loader import load_csv_data, split_data, validate_data
-from src.model import create_model_pipeline, save_model
-from src.evaluation import (
+from src.data.loader import load_csv_data, temporal_split, validate_data
+from src.models.pipeline import create_model_pipeline, save_model
+from src.models.evaluation import (
     find_optimal_threshold,
     plot_roc_curve,
     plot_precision_recall_curve,
@@ -75,15 +75,24 @@ def main():
         f"Class distribution — Churn: {pos_rate:.1%}, No Churn: {1 - pos_rate:.1%}"
     )
 
-    # 5. Split Data
+    # 5. Temporal split — train on oldest 80 % of customers (by tenure),
+    #    test on the most recently acquired 20 %.  Simulates real deployment:
+    #    model built on established cohorts, evaluated on new-joiner churn risk.
     random_state = config.config.get("project", {}).get("random_state", 42)
-    X_train, X_test, y_train, y_test = split_data(
+    X_train, X_test, y_train, y_test = temporal_split(
         df,
         target_column=target_col,
+        tenure_col="tenure",
         test_size=config.training_config["test_size"],
-        random_state=random_state,
     )
-    logger.info(f"Train shape: {X_train.shape}, Test shape: {X_test.shape}")
+    logger.info(
+        f"Temporal split — train: {X_train.shape[0]} rows "
+        f"(tenure {X_train['tenure'].min()}–{X_train['tenure'].max()} months, "
+        f"churn {y_train.mean():.1%})  |  "
+        f"test: {X_test.shape[0]} rows "
+        f"(tenure {X_test['tenure'].min()}–{X_test['tenure'].max()} months, "
+        f"churn {y_test.mean():.1%})"
+    )
 
     # 6. Build Pipeline
     model_params = config.model_config["params"].get(model_type, {})
@@ -140,18 +149,73 @@ def main():
     logger.info(f"Test ROC-AUC: {auc:.4f}")
     logger.info(f"Classification Report:\n{classification_report(y_test, y_pred, target_names=['No Churn', 'Churn'])}")
 
-    # 12. Save model + threshold together
+    # 12. Save model + threshold + metadata together
     model_dir = Path(config.paths["models"])
     model_dir.mkdir(parents=True, exist_ok=True)
     model_path = model_dir / f"{model_type}_pipeline.pkl"
     threshold_path = model_dir / f"{model_type}_threshold.json"
+    metadata_path = model_dir / f"{model_type}_metadata.json"
 
     joblib.dump(calibrated_pipeline, model_path)
     threshold_path.write_text(
         json.dumps({"threshold": optimal_threshold, "strategy": args.threshold_strategy})
     )
+
+    # Capture git SHA for reproducibility; graceful fallback if not in a repo
+    import subprocess
+    try:
+        git_sha = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        git_sha = "unknown"
+
+    from datetime import datetime, timezone
+    metadata = {
+        "model_type": model_type,
+        "trained_at": datetime.now(timezone.utc).isoformat(),
+        "git_sha": git_sha,
+        "threshold": optimal_threshold,
+        "threshold_strategy": args.threshold_strategy,
+        "metrics": {
+            "roc_auc": round(float(auc), 4),
+            "precision": round(float(threshold_metrics["precision"]), 4),
+            "recall": round(float(threshold_metrics["recall"]), 4),
+            "f1": round(float(threshold_metrics["f1"]), 4),
+        },
+        "train_rows": int(X_train.shape[0]),
+        "test_rows": int(X_test.shape[0]),
+        "test_churn_rate": round(float(y_test.mean()), 4),
+    }
+    metadata_path.write_text(json.dumps(metadata, indent=2))
+
+    # Save training reference stats for drift detection
+    # Covers the three raw numerical inputs and three key categorical features
+    num_features = ["tenure", "MonthlyCharges", "TotalCharges"]
+    cat_features = ["Contract", "InternetService", "PaymentMethod"]
+    train_stats: dict = {"numerical": {}, "categorical": {}}
+    for col in num_features:
+        if col in X_train.columns:
+            vals = X_train[col].dropna()
+            train_stats["numerical"][col] = {
+                "mean": round(float(vals.mean()), 4),
+                "std": round(float(vals.std()), 4),
+                "min": round(float(vals.min()), 4),
+                "max": round(float(vals.max()), 4),
+                "p25": round(float(vals.quantile(0.25)), 4),
+                "p75": round(float(vals.quantile(0.75)), 4),
+            }
+    for col in cat_features:
+        if col in X_train.columns:
+            freq = X_train[col].value_counts(normalize=True).round(4).to_dict()
+            train_stats["categorical"][col] = {str(k): float(v) for k, v in freq.items()}
+    train_stats_path = model_dir / "train_stats.json"
+    train_stats_path.write_text(json.dumps(train_stats, indent=2))
+
     logger.info(f"Calibrated pipeline saved to {model_path}")
     logger.info(f"Optimal threshold saved to {threshold_path}")
+    logger.info(f"Metadata saved to {metadata_path}")
+    logger.info(f"Training reference stats saved to {train_stats_path}")
 
     # 13. Optional evaluation plots
     if not args.skip_plots:

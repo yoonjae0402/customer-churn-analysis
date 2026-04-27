@@ -1,10 +1,19 @@
 Metric,Value
-Total At-Risk Customers,374
-Identified by Model,293
-True Positives,198
-False Positives,95
-Expected Customers Saved,99
-Campaign Cost,"$14,650"
-Revenue Saved,"$198,000"
-Net Benefit,"$183,350"
-ROI Percentage,1252%
+Cohort size (temporal test set),1409
+Churners in cohort,756
+Cohort churn rate,53.7%
+Null cost (do nothing),"$1,512,000"
+Cost-optimal threshold,0.288
+Recall at optimal threshold,100.0%
+Precision at optimal threshold,54.5%
+Customers flagged,1388
+True positives (caught churners),756
+False positives (false alarms),632
+False negatives (missed churners),0
+Campaign cost (offers sent),"$34,700"
+Revenue saved (p_retention=30%),"$453,600"
+Net benefit,"$418,900"
+ROI,1207%
+LTV assumption,"$2,000.0"
+Offer cost assumption,$25.0
+Retention success rate assumption,30%

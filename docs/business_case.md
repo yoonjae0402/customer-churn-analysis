@@ -2,7 +2,14 @@
 
 ## Executive Summary
 
-This customer churn prediction model identifies at-risk customers, enabling proactive retention campaigns. Based on our evaluation data, the model demonstrates a potential **ROI of 1,252%** with a net benefit of **$183,350** per campaign cycle.
+This customer churn prediction model identifies at-risk customers, enabling proactive retention campaigns.
+Based on a **temporal-split evaluation** (train on established customers, test on recently-acquired cohort),
+the model demonstrates a projected **net benefit of $418,900** for a cohort of 1,409 at-risk customers
+(ROI ≈ 1,207 %).
+
+> **Numbers updated 2026-04-27.**  Prior figures ($183,350 net benefit, 1,252 % ROI) were computed
+> from a random-stratified split and manually-typed confusion-matrix values — not from actual model
+> predictions.  See `IMPACT.md` for the full methodology with cited assumptions.
 
 ---
 

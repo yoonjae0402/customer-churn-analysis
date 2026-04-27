@@ -1,21 +1,27 @@
+# Core ML
+pandas==2.3.2
+numpy==2.3.5
+scikit-learn==1.8.0
+joblib==1.5.3
+PyYAML==6.0.3
 
-# Core ML libraries
-pandas>=2.0.3
-numpy>=1.26.4
-scikit-learn>=1.3.2
-joblib>=1.3.2
-xgboost>=2.0.0
-pyyaml>=6.0
-
-# API framework
-fastapi>=0.100.0
-uvicorn>=0.23.2
-
-# Configuration
-python-dotenv>=1.0.0
+# API
+fastapi==0.128.0
+uvicorn==0.40.0
+pydantic==2.12.5
+starlette==0.50.0
+httpx==0.28.1
+python-dotenv==1.2.1
 
 # AI/LLM
-google-genai>=1.0.0
+google-genai==1.60.0
 
-# CLI formatting
-rich>=13.6.0
+# Dashboard / visualisation
+streamlit==1.53.1
+matplotlib==3.10.6
+seaborn==0.13.2
+shap==0.51.0
+
+# Utilities
+rich==14.3.1
+anyio==4.12.0
