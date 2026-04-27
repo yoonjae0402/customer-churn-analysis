@@ -12,10 +12,10 @@ import pytest
 
 from src.features.engineering import CategoricalCleaner, FeatureEngineer
 
-
 # ---------------------------------------------------------------------------
 # Shared fixture
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def base_row() -> dict:
@@ -52,6 +52,7 @@ def single_df(base_row) -> pd.DataFrame:
 # FeatureEngineer — fit behaviour
 # ---------------------------------------------------------------------------
 
+
 class TestFeatureEngineerFit:
     def test_fit_stores_monthly_median(self, single_df):
         fe = FeatureEngineer()
@@ -73,16 +74,22 @@ class TestFeatureEngineerFit:
 # FeatureEngineer — tenure features
 # ---------------------------------------------------------------------------
 
+
 class TestTenureFeatures:
-    @pytest.mark.parametrize("tenure,expected_new,expected_long", [
-        (0,  1, 0),
-        (12, 1, 0),   # boundary: ≤12 → new
-        (13, 0, 0),   # just above new threshold
-        (24, 0, 0),   # boundary: ≤24 → not long-term
-        (25, 0, 1),   # just above long-term threshold
-        (72, 0, 1),
-    ])
-    def test_is_new_and_long_term_boundaries(self, base_row, tenure, expected_new, expected_long):
+    @pytest.mark.parametrize(
+        "tenure,expected_new,expected_long",
+        [
+            (0, 1, 0),
+            (12, 1, 0),  # boundary: ≤12 → new
+            (13, 0, 0),  # just above new threshold
+            (24, 0, 0),  # boundary: ≤24 → not long-term
+            (25, 0, 1),  # just above long-term threshold
+            (72, 0, 1),
+        ],
+    )
+    def test_is_new_and_long_term_boundaries(
+        self, base_row, tenure, expected_new, expected_long
+    ):
         base_row["tenure"] = tenure
         df = pd.DataFrame([base_row])
         fe = FeatureEngineer(monthly_median=70.0)
@@ -102,6 +109,7 @@ class TestTenureFeatures:
 # ---------------------------------------------------------------------------
 # FeatureEngineer — charge features
 # ---------------------------------------------------------------------------
+
 
 class TestChargeFeatures:
     def test_charge_per_tenure_formula(self, base_row):
@@ -155,6 +163,7 @@ class TestChargeFeatures:
 # FeatureEngineer — service features
 # ---------------------------------------------------------------------------
 
+
 class TestServiceFeatures:
     def test_total_services_count(self, base_row):
         """total_services counts 'Yes' across the 6 add-on service columns."""
@@ -166,8 +175,14 @@ class TestServiceFeatures:
         assert out["total_services"].iloc[0] == 2
 
     def test_total_services_all_yes(self, base_row):
-        for col in ["OnlineSecurity", "OnlineBackup", "DeviceProtection",
-                    "TechSupport", "StreamingTV", "StreamingMovies"]:
+        for col in [
+            "OnlineSecurity",
+            "OnlineBackup",
+            "DeviceProtection",
+            "TechSupport",
+            "StreamingTV",
+            "StreamingMovies",
+        ]:
             base_row[col] = "Yes"
         df = pd.DataFrame([base_row])
         fe = FeatureEngineer(monthly_median=70.0)
@@ -176,8 +191,14 @@ class TestServiceFeatures:
         assert out["total_services"].iloc[0] == 6
 
     def test_total_services_all_no(self, base_row):
-        for col in ["OnlineSecurity", "OnlineBackup", "DeviceProtection",
-                    "TechSupport", "StreamingTV", "StreamingMovies"]:
+        for col in [
+            "OnlineSecurity",
+            "OnlineBackup",
+            "DeviceProtection",
+            "TechSupport",
+            "StreamingTV",
+            "StreamingMovies",
+        ]:
             base_row[col] = "No"
         df = pd.DataFrame([base_row])
         fe = FeatureEngineer(monthly_median=70.0)
@@ -200,12 +221,16 @@ class TestServiceFeatures:
 # FeatureEngineer — contract / payment features
 # ---------------------------------------------------------------------------
 
+
 class TestContractFeatures:
-    @pytest.mark.parametrize("contract,expected", [
-        ("Month-to-month", 1),
-        ("One year", 0),
-        ("Two year", 0),
-    ])
+    @pytest.mark.parametrize(
+        "contract,expected",
+        [
+            ("Month-to-month", 1),
+            ("One year", 0),
+            ("Two year", 0),
+        ],
+    )
     def test_is_month_to_month(self, base_row, contract, expected):
         base_row["Contract"] = contract
         df = pd.DataFrame([base_row])
@@ -214,12 +239,15 @@ class TestContractFeatures:
         out = fe.transform(df)
         assert out["is_month_to_month"].iloc[0] == expected
 
-    @pytest.mark.parametrize("method,expected", [
-        ("Bank transfer (automatic)", 1),
-        ("Credit card (automatic)", 1),
-        ("Electronic check", 0),
-        ("Mailed check", 0),
-    ])
+    @pytest.mark.parametrize(
+        "method,expected",
+        [
+            ("Bank transfer (automatic)", 1),
+            ("Credit card (automatic)", 1),
+            ("Electronic check", 0),
+            ("Mailed check", 0),
+        ],
+    )
     def test_has_auto_payment(self, base_row, method, expected):
         base_row["PaymentMethod"] = method
         df = pd.DataFrame([base_row])
@@ -232,6 +260,7 @@ class TestContractFeatures:
 # ---------------------------------------------------------------------------
 # FeatureEngineer — demographics
 # ---------------------------------------------------------------------------
+
 
 class TestDemographicFeatures:
     def test_has_family_partner_only(self, base_row):
@@ -268,13 +297,27 @@ class TestDemographicFeatures:
 # FeatureEngineer — output completeness
 # ---------------------------------------------------------------------------
 
+
 class TestOutputCompleteness:
     EXPECTED_DERIVED = [
-        "is_new_customer", "is_long_term", "tenure_bins",
-        "avg_monthly_spend", "charge_per_tenure", "price_increase", "high_monthly_charge",
-        "total_services", "has_internet", "has_phone", "has_tech_support", "has_online_security",
-        "is_month_to_month", "has_auto_payment", "is_paperless",
-        "is_senior", "has_family", "is_single_no_deps",
+        "is_new_customer",
+        "is_long_term",
+        "tenure_bins",
+        "avg_monthly_spend",
+        "charge_per_tenure",
+        "price_increase",
+        "high_monthly_charge",
+        "total_services",
+        "has_internet",
+        "has_phone",
+        "has_tech_support",
+        "has_online_security",
+        "is_month_to_month",
+        "has_auto_payment",
+        "is_paperless",
+        "is_senior",
+        "has_family",
+        "is_single_no_deps",
     ]
 
     def test_all_derived_columns_present(self, single_df):
@@ -302,6 +345,7 @@ class TestOutputCompleteness:
 # ---------------------------------------------------------------------------
 # CategoricalCleaner
 # ---------------------------------------------------------------------------
+
 
 class TestCategoricalCleaner:
     def test_partner_yes_maps_to_1(self, single_df):

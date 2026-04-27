@@ -1,4 +1,3 @@
-
 import json
 import logging
 import os
@@ -6,23 +5,25 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from src.config import config
-from src.models.pipeline import load_model, predict_churn_with_threshold, load_threshold
-from src.api.services.marketing import marketing_service
 from src.api.schemas import CustomerData, PredictionResponse
+from src.api.services.marketing import marketing_service
+from src.config import config
+from src.models.pipeline import load_model, load_threshold, predict_churn_with_threshold
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Customer Churn Prediction API",
-    description="Predicts customer churn likelihood and generates personalised retention offers.",
+    description=(
+        "Predicts churn likelihood" " and generates personalised retention offers."
+    ),
     version=config.config["project"]["version"],
 )
 
@@ -30,7 +31,9 @@ app = FastAPI(
 # CORS
 # ---------------------------------------------------------------------------
 
-_raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080")
+_raw_origins = os.getenv(
+    "ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080"
+)
 ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
 app.add_middleware(
@@ -41,9 +44,11 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
+
 # ---------------------------------------------------------------------------
 # Request logging middleware
 # ---------------------------------------------------------------------------
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -57,6 +62,7 @@ async def log_requests(request: Request, call_next):
     )
     response.headers["X-Request-Id"] = request_id
     return response
+
 
 # ---------------------------------------------------------------------------
 # Global state: model pipeline + metadata
@@ -102,6 +108,7 @@ async def startup_event():
 
 _FEATURE_LOG_PATH = Path(os.getenv("FEATURE_LOG_PATH", "logs/feature_log.jsonl"))
 
+
 def _log_features(features: dict) -> None:
     """Append raw input features to the JSONL feature log.
 
@@ -128,9 +135,11 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal server error. Check logs for details."},
     )
 
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
 
 @app.get("/healthz")
 async def healthz():
@@ -212,4 +221,5 @@ async def predict_churn_endpoint(customer_data: CustomerData):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("src.api.main:app", host="0.0.0.0", port=8000, reload=True)

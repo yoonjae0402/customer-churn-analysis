@@ -1,28 +1,28 @@
-
 import argparse
 import json
-import pandas as pd
-import numpy as np
-import joblib
 from pathlib import Path
+
+import joblib
+import numpy as np
+import pandas as pd
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.model_selection import StratifiedKFold, cross_validate
 from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.model_selection import StratifiedKFold, cross_validate
 
 from src.config import config
-from src.logger import logger
 from src.data.loader import load_csv_data, temporal_split, validate_data
-from src.models.pipeline import create_model_pipeline, save_model
+from src.logger import logger
 from src.models.evaluation import (
     find_optimal_threshold,
-    plot_roc_curve,
-    plot_precision_recall_curve,
     plot_calibration_curve,
     plot_learning_curves,
+    plot_precision_recall_curve,
+    plot_roc_curve,
 )
+from src.models.pipeline import create_model_pipeline
 
 
-def main():
+def main():  # noqa: C901
     parser = argparse.ArgumentParser(description="Train Customer Churn Model")
     parser.add_argument(
         "--model",
@@ -123,9 +123,7 @@ def main():
     # CalibratedClassifierCV with isotonic regression and 5-fold CV produces
     # more reliable probabilities. The pipeline is fitted internally here.
     logger.info("Training final model with isotonic calibration (5-fold)...")
-    calibrated_pipeline = CalibratedClassifierCV(
-        pipeline, cv=5, method="isotonic"
-    )
+    calibrated_pipeline = CalibratedClassifierCV(pipeline, cv=5, method="isotonic")
     calibrated_pipeline.fit(X_train, y_train)
 
     # 10. Find optimal threshold on the test set
@@ -147,7 +145,8 @@ def main():
 
     auc = roc_auc_score(y_test, y_prob)
     logger.info(f"Test ROC-AUC: {auc:.4f}")
-    logger.info(f"Classification Report:\n{classification_report(y_test, y_pred, target_names=['No Churn', 'Churn'])}")
+    report = classification_report(y_test, y_pred, target_names=["No Churn", "Churn"])
+    logger.info(f"Classification Report:\n{report}")
 
     # 12. Save model + threshold + metadata together
     model_dir = Path(config.paths["models"])
@@ -158,19 +157,27 @@ def main():
 
     joblib.dump(calibrated_pipeline, model_path)
     threshold_path.write_text(
-        json.dumps({"threshold": optimal_threshold, "strategy": args.threshold_strategy})
+        json.dumps(
+            {"threshold": optimal_threshold, "strategy": args.threshold_strategy}
+        )
     )
 
     # Capture git SHA for reproducibility; graceful fallback if not in a repo
     import subprocess
+
     try:
-        git_sha = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
-        ).decode().strip()
+        git_sha = (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
+            )
+            .decode()
+            .strip()
+        )
     except Exception:
         git_sha = "unknown"
 
     from datetime import datetime, timezone
+
     metadata = {
         "model_type": model_type,
         "trained_at": datetime.now(timezone.utc).isoformat(),
@@ -208,7 +215,9 @@ def main():
     for col in cat_features:
         if col in X_train.columns:
             freq = X_train[col].value_counts(normalize=True).round(4).to_dict()
-            train_stats["categorical"][col] = {str(k): float(v) for k, v in freq.items()}
+            train_stats["categorical"][col] = {
+                str(k): float(v) for k, v in freq.items()
+            }
     train_stats_path = model_dir / "train_stats.json"
     train_stats_path.write_text(json.dumps(train_stats, indent=2))
 
@@ -225,20 +234,25 @@ def main():
         logger.info("Generating evaluation plots...")
 
         plot_roc_curve(
-            y_test.values, y_prob,
+            y_test.values,
+            y_prob,
             save_path=reports_dir / f"{model_type}_roc_curve.png",
         )
         plot_precision_recall_curve(
-            y_test.values, y_prob,
+            y_test.values,
+            y_prob,
             optimal_threshold=optimal_threshold,
             save_path=reports_dir / f"{model_type}_pr_curve.png",
         )
         plot_calibration_curve(
-            y_test.values, y_prob,
+            y_test.values,
+            y_prob,
             save_path=reports_dir / f"{model_type}_calibration.png",
         )
         plot_learning_curves(
-            pipeline, X_train, y_train,
+            pipeline,
+            X_train,
+            y_train,
             cv=cv_folds,
             save_path=reports_dir / f"{model_type}_learning_curves.png",
         )

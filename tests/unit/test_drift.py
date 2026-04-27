@@ -12,7 +12,7 @@ import pytest
 
 # Make the scripts package importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-from scripts.check_drift import (
+from scripts.check_drift import (  # noqa: E402
     compute_categorical_drift,
     compute_numerical_drift,
     load_feature_log,
@@ -20,17 +20,31 @@ from scripts.check_drift import (
     summarise_drift,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def ref_stats():
     return {
         "numerical": {
-            "tenure": {"mean": 32.0, "std": 24.0, "min": 0.0, "max": 72.0, "p25": 9.0, "p75": 55.0},
-            "MonthlyCharges": {"mean": 64.76, "std": 30.09, "min": 18.25, "max": 118.75, "p25": 35.5, "p75": 89.85},
+            "tenure": {
+                "mean": 32.0,
+                "std": 24.0,
+                "min": 0.0,
+                "max": 72.0,
+                "p25": 9.0,
+                "p75": 55.0,
+            },
+            "MonthlyCharges": {
+                "mean": 64.76,
+                "std": 30.09,
+                "min": 18.25,
+                "max": 118.75,
+                "p25": 35.5,
+                "p75": 89.85,
+            },
         },
         "categorical": {
             "Contract": {
@@ -70,6 +84,7 @@ def drifted_rows():
 # compute_numerical_drift
 # ---------------------------------------------------------------------------
 
+
 class TestNumericalDrift:
     def test_no_drift_when_means_match(self, matching_rows, ref_stats):
         results = compute_numerical_drift(matching_rows, ref_stats, threshold=2.0)
@@ -77,7 +92,7 @@ class TestNumericalDrift:
         assert results["tenure"]["drifted"] is False
 
     def test_drift_detected_for_shifted_mean(self, drifted_rows, ref_stats):
-        """Mean tenure ~70, training mean 32, std 24 → z ≈ 1.58. At threshold=1.0 it drifts."""
+        """tenure ~70, train_mean=32, std=24 → z≈1.58. Drifts at threshold=1.0."""
         results = compute_numerical_drift(drifted_rows, ref_stats, threshold=1.0)
         assert results["tenure"]["drifted"] is True
 
@@ -113,6 +128,7 @@ class TestNumericalDrift:
 # compute_categorical_drift
 # ---------------------------------------------------------------------------
 
+
 class TestCategoricalDrift:
     def test_no_drift_when_frequencies_match(self, matching_rows, ref_stats):
         # 3/5 Month-to-month = 0.60, ref=0.55, dev=0.05 < 0.15
@@ -145,6 +161,7 @@ class TestCategoricalDrift:
 # ---------------------------------------------------------------------------
 # summarise_drift
 # ---------------------------------------------------------------------------
+
 
 class TestSummariseDrift:
     def test_no_drift(self):
@@ -179,13 +196,17 @@ class TestSummariseDrift:
 # I/O helpers
 # ---------------------------------------------------------------------------
 
+
 class TestLoadFeatureLog:
     def test_loads_valid_jsonl(self, tmp_path):
         log = tmp_path / "feature_log.jsonl"
-        log.write_text(
-            json.dumps({"timestamp": "2026-01-01T00:00:00Z", "features": {"tenure": 5}}) + "\n"
-            + json.dumps({"timestamp": "2026-01-01T00:01:00Z", "features": {"tenure": 10}}) + "\n"
+        row1 = json.dumps(
+            {"timestamp": "2026-01-01T00:00:00Z", "features": {"tenure": 5}}
         )
+        row2 = json.dumps(
+            {"timestamp": "2026-01-01T00:01:00Z", "features": {"tenure": 10}}
+        )
+        log.write_text(row1 + "\n" + row2 + "\n")
         rows = load_feature_log(log)
         assert len(rows) == 2
         assert rows[0]["tenure"] == 5
@@ -198,8 +219,7 @@ class TestLoadFeatureLog:
         log = tmp_path / "feature_log.jsonl"
         log.write_text(
             json.dumps({"timestamp": "t", "features": {"tenure": 1}}) + "\n"
-            "\n"
-            + json.dumps({"timestamp": "t", "features": {"tenure": 2}}) + "\n"
+            "\n" + json.dumps({"timestamp": "t", "features": {"tenure": 2}}) + "\n"
         )
         rows = load_feature_log(log)
         assert len(rows) == 2

@@ -6,7 +6,7 @@ from various sources (CSV files, processed data directories).
 """
 
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import pandas as pd
 
@@ -189,9 +189,8 @@ def temporal_split(
     Returns:
         Tuple of (X_train, X_test, y_train, y_test)
     """
-    df_sorted = (
-        df.sort_values(tenure_col, ascending=False, kind="stable")
-        .reset_index(drop=True)
+    df_sorted = df.sort_values(tenure_col, ascending=False, kind="stable").reset_index(
+        drop=True
     )
     n_train = int(len(df_sorted) * (1 - test_size))
 

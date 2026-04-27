@@ -1,4 +1,3 @@
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,10 +12,10 @@ from src.models.pipeline import (
     save_model,
 )
 
-
 # ---------------------------------------------------------------------------
 # Shared fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def sample_data():
@@ -95,6 +94,7 @@ def imbalanced_data():
 # Pipeline structure
 # ---------------------------------------------------------------------------
 
+
 def test_pipeline_creation():
     pipeline = create_model_pipeline(model_type="random_forest")
     assert pipeline is not None
@@ -120,6 +120,7 @@ def test_invalid_model_type_raises():
 # ---------------------------------------------------------------------------
 # Training flow
 # ---------------------------------------------------------------------------
+
 
 def test_training_flow(sample_data, tmp_path):
     pipeline = create_model_pipeline(model_type="logistic_regression")
@@ -149,21 +150,28 @@ def test_class_imbalance_training(imbalanced_data):
     X = imbalanced_data.drop("Churn", axis=1)
     y = imbalanced_data["Churn"]
 
-    for model_type, params in [
-        ("logistic_regression", {"max_iter": 200, "C": 1.0, "class_weight": "balanced"}),
+    model_cases = [
+        (
+            "logistic_regression",
+            {"max_iter": 200, "C": 1.0, "class_weight": "balanced"},
+        ),  # noqa: E501
         ("random_forest", {"n_estimators": 10, "class_weight": "balanced"}),
-    ]:
+    ]
+    for model_type, params in model_cases:
         pipeline = create_model_pipeline(model_type, params)
         pipeline.fit(X, y)
         probs = predict_churn(pipeline, X)
 
         assert probs.shape == (len(X),), f"{model_type}: wrong output shape"
-        assert np.all((probs >= 0) & (probs <= 1)), f"{model_type}: probabilities out of range"
+        assert np.all(
+            (probs >= 0) & (probs <= 1)
+        ), f"{model_type}: probabilities out of range"
 
 
 # ---------------------------------------------------------------------------
 # Threshold-aware prediction
 # ---------------------------------------------------------------------------
+
 
 def test_predict_with_threshold(sample_data):
     pipeline = create_model_pipeline(model_type="logistic_regression")
@@ -205,6 +213,7 @@ def test_load_threshold_from_file(tmp_path):
 # Optimal threshold finding
 # ---------------------------------------------------------------------------
 
+
 def test_find_optimal_threshold_f1():
     rng = np.random.default_rng(0)
     y_true = rng.integers(0, 2, 100)
@@ -240,6 +249,7 @@ def test_find_optimal_threshold_invalid_strategy():
 # Edge cases
 # ---------------------------------------------------------------------------
 
+
 def test_predict_single_row(sample_data):
     """Pipeline must handle a single-row DataFrame (inference scenario)."""
     pipeline = create_model_pipeline(model_type="logistic_regression")
@@ -263,4 +273,6 @@ def test_missing_total_charges_handled(sample_data):
     pipeline.fit(X, y)
 
     probs = predict_churn(pipeline, X)
-    assert not np.isnan(probs).any(), "NaN TotalCharges should not produce NaN probabilities"
+    assert not np.isnan(
+        probs
+    ).any(), "NaN TotalCharges should not produce NaN probabilities"

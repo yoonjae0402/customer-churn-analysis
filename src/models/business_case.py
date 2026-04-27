@@ -25,7 +25,7 @@ Offer-cost derivation:
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -34,7 +34,7 @@ import pandas as pd
 # Defaults
 # ---------------------------------------------------------------------------
 
-DEFAULT_LTV: float = 2_000.0   # USD per churner — see module docstring
+DEFAULT_LTV: float = 2_000.0  # USD per churner — see module docstring
 DEFAULT_OFFER_COST: float = 25.0  # USD per flagged customer — see module docstring
 DEFAULT_P_RETENTION: float = 0.30  # conservative success rate for retention offers
 
@@ -42,6 +42,7 @@ DEFAULT_P_RETENTION: float = 0.30  # conservative success rate for retention off
 # ---------------------------------------------------------------------------
 # Core cost helpers
 # ---------------------------------------------------------------------------
+
 
 def cost_at_threshold(
     y_true: np.ndarray,
@@ -84,7 +85,10 @@ def cost_at_threshold(
 
     return {
         "threshold": float(threshold),
-        "tp": tp, "tn": tn, "fp": fp, "fn": fn,
+        "tp": tp,
+        "tn": tn,
+        "fp": fp,
+        "fn": fn,
         "flagged": tp + fp,
         "fn_cost": fn_cost,
         "campaign_cost": campaign_cost,
@@ -108,8 +112,7 @@ def build_cost_curve(
     Returns a DataFrame suitable for plotting or tabular inspection.
     """
     thresholds = np.linspace(0.01, 0.99, n_points)
-    rows = [cost_at_threshold(y_true, y_prob, t, ltv, offer_cost)
-            for t in thresholds]
+    rows = [cost_at_threshold(y_true, y_prob, t, ltv, offer_cost) for t in thresholds]
     return pd.DataFrame(rows)
 
 
@@ -134,6 +137,7 @@ def find_cost_optimal_threshold(
 # ---------------------------------------------------------------------------
 # Decile analysis
 # ---------------------------------------------------------------------------
+
 
 def compute_decile_analysis(
     y_true: np.ndarray,
@@ -185,29 +189,36 @@ def compute_decile_analysis(
         churn_rate = n_churn / n_cust if n_cust > 0 else 0.0
 
         cumulative_churners += n_churn
-        cumulative_recall = cumulative_churners / total_churners if total_churners > 0 else 0.0
+        cumulative_recall = (
+            cumulative_churners / total_churners if total_churners > 0 else 0.0
+        )
 
         expected_loss = n_churn * ltv
         camp_cost = n_cust * offer_cost
         rev_saved = n_churn * p_retention * ltv
         net = rev_saved - camp_cost
         roi = (net / camp_cost * 100) if camp_cost > 0 else 0.0
-        break_even = (offer_cost / (churn_rate * ltv)) if (churn_rate * ltv) > 0 else float("inf")
+        ltv_per_customer = churn_rate * ltv
+        break_even = (
+            (offer_cost / ltv_per_customer) if ltv_per_customer > 0 else float("inf")
+        )
 
-        rows.append({
-            "decile": int(decile),
-            "customers": n_cust,
-            "churners": n_churn,
-            "churn_rate_pct": round(churn_rate * 100, 1),
-            "avg_predicted_prob": round(float(grp["y_prob"].mean()), 3),
-            "cumulative_recall_pct": round(cumulative_recall * 100, 1),
-            "expected_loss_no_action": int(round(expected_loss)),
-            "campaign_cost": int(round(camp_cost)),
-            "revenue_saved": int(round(rev_saved)),
-            "net_benefit": int(round(net)),
-            "roi_pct": round(roi, 1),
-            "break_even_retention_rate_pct": round(break_even * 100, 1),
-        })
+        rows.append(
+            {
+                "decile": int(decile),
+                "customers": n_cust,
+                "churners": n_churn,
+                "churn_rate_pct": round(churn_rate * 100, 1),
+                "avg_predicted_prob": round(float(grp["y_prob"].mean()), 3),
+                "cumulative_recall_pct": round(cumulative_recall * 100, 1),
+                "expected_loss_no_action": int(round(expected_loss)),
+                "campaign_cost": int(round(camp_cost)),
+                "revenue_saved": int(round(rev_saved)),
+                "net_benefit": int(round(net)),
+                "roi_pct": round(roi, 1),
+                "break_even_retention_rate_pct": round(break_even * 100, 1),
+            }
+        )
 
     return pd.DataFrame(rows)
 
@@ -215,6 +226,7 @@ def compute_decile_analysis(
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
+
 
 def compute_roi_summary(
     y_true: np.ndarray,
@@ -239,7 +251,9 @@ def compute_roi_summary(
     campaign_cost_total = flagged * offer_cost
     net_benefit = revenue_saved - campaign_cost_total
     null_cost = float(y_true.sum()) * ltv
-    roi_pct = (net_benefit / campaign_cost_total * 100) if campaign_cost_total > 0 else 0.0
+    roi_pct = (
+        (net_benefit / campaign_cost_total * 100) if campaign_cost_total > 0 else 0.0
+    )
 
     # Per-customer cost reduction (normalised to cohort size)
     n = len(y_true)
@@ -252,7 +266,9 @@ def compute_roi_summary(
         "optimal_threshold": opt_thresh,
         "recall": cost_row["recall"],
         "precision": cost_row["precision"],
-        "tp": tp, "fp": fp, "fn": fn,
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
         "flagged_customers": flagged,
         "null_cost": int(null_cost),
         "fn_cost_at_threshold": int(cost_row["fn_cost"]),

@@ -1,6 +1,6 @@
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 from src.api.main import app
@@ -38,6 +38,7 @@ VALID_PAYLOAD = {
 # Health endpoints
 # ---------------------------------------------------------------------------
 
+
 def test_healthz():
     response = client.get("/healthz")
     assert response.status_code == 200
@@ -68,6 +69,7 @@ def test_model_info():
 # ---------------------------------------------------------------------------
 # Schema validation
 # ---------------------------------------------------------------------------
+
 
 def test_predict_missing_all_fields():
     response = client.post("/predict", json={})
@@ -121,6 +123,7 @@ def test_predict_optional_total_charges_omitted():
 # ---------------------------------------------------------------------------
 # Successful prediction (Gemini mocked)
 # ---------------------------------------------------------------------------
+
 
 @patch(
     "src.api.services.marketing.MarketingService.generate_offer",
@@ -180,6 +183,7 @@ def test_predict_response_schema(mock_offer):
 # Model-not-loaded behaviour
 # ---------------------------------------------------------------------------
 
+
 def test_predict_model_not_loaded_returns_503():
     """When no model is loaded, /predict must return 503."""
     import src.api.main as main_module
@@ -196,6 +200,7 @@ def test_predict_model_not_loaded_returns_503():
 # ---------------------------------------------------------------------------
 # Gemini fallback
 # ---------------------------------------------------------------------------
+
 
 @patch(
     "src.api.services.marketing.MarketingService.generate_offer",

@@ -1,17 +1,12 @@
-
 import logging
 import logging.config
-import os
 from pathlib import Path
-import yaml
+
 
 def setup_logger(config_path="config.yaml"):
-    """
-    Sets up the logging configuration.
-    """
-    # Create logs directory if it doesn't exist
+    """Sets up the logging configuration."""
     Path("logs").mkdir(exist_ok=True)
-    
+
     config = {
         "version": 1,
         "disable_existing_loggers": False,
@@ -38,9 +33,10 @@ def setup_logger(config_path="config.yaml"):
             "level": "INFO",
         },
     }
-    
+
     logging.config.dictConfig(config)
     logger = logging.getLogger(__name__)
     return logger
+
 
 logger = setup_logger()

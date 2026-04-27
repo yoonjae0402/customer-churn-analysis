@@ -97,7 +97,8 @@ def find_optimal_threshold(
         y_proba: Predicted probabilities for the positive class
         strategy: One of "f1", "recall_at_precision", "cost"
         cost_fn: Cost of a false negative (missed churner) — used only for "cost"
-        cost_fp: Cost of a false positive (wasted retention offer) — used only for "cost"
+        cost_fp: Cost of a false positive (wasted retention offer) — used only for
+            "cost"
 
     Returns:
         Tuple of (best_threshold, metrics_at_threshold)
@@ -109,7 +110,8 @@ def find_optimal_threshold(
 
     if strategy == "f1":
         denom = precisions + recalls
-        f1_scores = np.where(denom > 0, 2 * precisions * recalls / np.where(denom > 0, denom, 1), 0)
+        safe_denom = np.where(denom > 0, denom, 1)
+        f1_scores = np.where(denom > 0, 2 * precisions * recalls / safe_denom, 0)
         best_idx = int(np.argmax(f1_scores))
 
     elif strategy == "recall_at_precision":
@@ -121,7 +123,6 @@ def find_optimal_threshold(
             best_idx = int(np.argmax(np.where(valid, recalls, -1)))
 
     elif strategy == "cost":
-        n = len(y_true)
         total_costs = []
         for p, r, t in zip(precisions, recalls, thresholds):
             tp = r * y_true.sum()
@@ -131,7 +132,10 @@ def find_optimal_threshold(
         best_idx = int(np.argmin(total_costs))
 
     else:
-        raise ValueError(f"Unknown strategy: {strategy!r}. Use 'f1', 'recall_at_precision', or 'cost'.")
+        raise ValueError(
+            f"Unknown strategy: {strategy!r}. "
+            "Use 'f1', 'recall_at_precision', or 'cost'."
+        )
 
     best_threshold = float(thresholds[best_idx])
     y_pred_at_threshold = (y_proba >= best_threshold).astype(int)
@@ -141,7 +145,10 @@ def find_optimal_threshold(
         "precision": float(precisions[best_idx]),
         "recall": float(recalls[best_idx]),
         "f1": float(
-            2 * precisions[best_idx] * recalls[best_idx] / (precisions[best_idx] + recalls[best_idx])
+            2
+            * precisions[best_idx]
+            * recalls[best_idx]
+            / (precisions[best_idx] + recalls[best_idx])
             if (precisions[best_idx] + recalls[best_idx]) > 0
             else 0
         ),
@@ -279,7 +286,9 @@ def plot_roc_curve(
     auc_score = roc_auc_score(y_true, y_proba)
 
     fig, ax = plt.subplots(figsize=figsize)
-    ax.plot(fpr, tpr, color="steelblue", lw=2, label=f"ROC curve (AUC = {auc_score:.3f})")
+    ax.plot(
+        fpr, tpr, color="steelblue", lw=2, label=f"ROC curve (AUC = {auc_score:.3f})"
+    )
     ax.plot([0, 1], [0, 1], color="gray", lw=1, linestyle="--")
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
@@ -331,20 +340,30 @@ def plot_precision_recall_curve(
 
     fig, ax = plt.subplots(figsize=figsize)
     ax.plot(
-        recall_vals, precision_vals,
-        color="steelblue", lw=2,
+        recall_vals,
+        precision_vals,
+        color="steelblue",
+        lw=2,
         label=f"PR curve (AUC = {pr_auc:.3f})",
     )
-    ax.axhline(y=baseline, color="gray", lw=1, linestyle="--",
-               label=f"Baseline (random): {baseline:.3f}")
+    ax.axhline(
+        y=baseline,
+        color="gray",
+        lw=1,
+        linestyle="--",
+        label=f"Baseline (random): {baseline:.3f}",
+    )
 
     if optimal_threshold is not None:
         # Find the point on the curve closest to this threshold
         idx = np.searchsorted(thresholds, optimal_threshold, side="left")
         idx = min(idx, len(precision_vals) - 2)
         ax.scatter(
-            recall_vals[idx], precision_vals[idx],
-            color="red", zorder=5, s=100,
+            recall_vals[idx],
+            precision_vals[idx],
+            color="red",
+            zorder=5,
+            s=100,
             label=f"Optimal threshold ({optimal_threshold:.2f})",
         )
 
@@ -397,8 +416,11 @@ def plot_calibration_curve(
 
     fig, ax = plt.subplots(figsize=figsize)
     ax.plot(
-        mean_predicted_value, fraction_of_positives,
-        "s-", color="steelblue", label="Model",
+        mean_predicted_value,
+        fraction_of_positives,
+        "s-",
+        color="steelblue",
+        label="Model",
     )
     ax.plot([0, 1], [0, 1], "k--", label="Perfectly calibrated")
     ax.set_xlabel("Mean Predicted Probability")
@@ -451,7 +473,9 @@ def plot_learning_curves(
         train_sizes = np.linspace(0.1, 1.0, 8)
 
     train_sizes_abs, train_scores, val_scores = learning_curve(
-        pipeline, X, y,
+        pipeline,
+        X,
+        y,
         cv=cv,
         scoring=scoring,
         train_sizes=train_sizes,
@@ -466,10 +490,30 @@ def plot_learning_curves(
     val_std = val_scores.std(axis=1)
 
     fig, ax = plt.subplots(figsize=figsize)
-    ax.plot(train_sizes_abs, train_mean, "o-", color="steelblue", label="Training score")
-    ax.fill_between(train_sizes_abs, train_mean - train_std, train_mean + train_std, alpha=0.15, color="steelblue")
-    ax.plot(train_sizes_abs, val_mean, "o-", color="darkorange", label="Cross-validation score")
-    ax.fill_between(train_sizes_abs, val_mean - val_std, val_mean + val_std, alpha=0.15, color="darkorange")
+    ax.plot(
+        train_sizes_abs, train_mean, "o-", color="steelblue", label="Training score"
+    )
+    ax.fill_between(
+        train_sizes_abs,
+        train_mean - train_std,
+        train_mean + train_std,
+        alpha=0.15,
+        color="steelblue",
+    )
+    ax.plot(
+        train_sizes_abs,
+        val_mean,
+        "o-",
+        color="darkorange",
+        label="Cross-validation score",
+    )
+    ax.fill_between(
+        train_sizes_abs,
+        val_mean - val_std,
+        val_mean + val_std,
+        alpha=0.15,
+        color="darkorange",
+    )
 
     ax.set_xlabel("Training Set Size")
     ax.set_ylabel(scoring.upper().replace("_", "-"))
@@ -503,7 +547,8 @@ def plot_shap_summary(
     Requires: pip install shap
 
     Args:
-        pipeline: Fitted sklearn pipeline (must include 'preprocessor' and 'classifier' steps)
+        pipeline: Fitted sklearn pipeline (must include 'preprocessor' and
+            'classifier' steps)
         X: Raw feature DataFrame (before preprocessing)
         max_display: Max number of features to show
         save_path: Optional path to save the figure
@@ -573,6 +618,8 @@ def compare_models(results: List[Dict[str, Any]]) -> pd.DataFrame:
     Returns:
         DataFrame comparing model performance
     """
-    return pd.DataFrame(results).set_index("model_name").sort_values(
-        "roc_auc", ascending=False
+    return (
+        pd.DataFrame(results)
+        .set_index("model_name")
+        .sort_values("roc_auc", ascending=False)
     )

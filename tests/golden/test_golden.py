@@ -26,7 +26,6 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-
 GOLDEN_FILE = Path(__file__).parent / "golden_prediction.json"
 MODEL_ROOT = Path(__file__).resolve().parent.parent.parent
 
