@@ -66,7 +66,7 @@ class MarketingService:
             response = await self.client.aio.models.generate_content(
                 model="gemini-2.5-flash", contents=prompt
             )
-            return response.text
+            return response.text or ""
         except Exception as e:
             logger.error(f"Gemini API error: {e}")
             return "Error generating marketing offer."

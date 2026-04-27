@@ -15,9 +15,9 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 try:
     import xgboost as xgb
 except ImportError:
-    xgb = None
+    xgb = None  # type: ignore[assignment]
 except Exception:  # Handle XGBoostError (libomp missing)
-    xgb = None
+    xgb = None  # type: ignore[assignment]
 
 from src.config import config
 from src.features.engineering import CategoricalCleaner, FeatureEngineer

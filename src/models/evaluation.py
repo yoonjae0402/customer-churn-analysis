@@ -50,7 +50,7 @@ def calculate_metrics(
         metrics["roc_auc"] = roc_auc_score(y_true, y_proba)
         precision_vals, recall_vals, _ = precision_recall_curve(y_true, y_proba)
         # PR-AUC via trapezoidal integration (more meaningful for imbalanced data)
-        metrics["pr_auc"] = float(np.trapz(precision_vals, recall_vals) * -1)
+        metrics["pr_auc"] = -float(np.trapz(precision_vals, recall_vals))
 
     return metrics
 
@@ -290,8 +290,8 @@ def plot_roc_curve(
         fpr, tpr, color="steelblue", lw=2, label=f"ROC curve (AUC = {auc_score:.3f})"
     )
     ax.plot([0, 1], [0, 1], color="gray", lw=1, linestyle="--")
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.05)
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
     ax.set_title("Receiver Operating Characteristic (ROC) Curve")
@@ -335,7 +335,7 @@ def plot_precision_recall_curve(
     import matplotlib.pyplot as plt
 
     precision_vals, recall_vals, thresholds = precision_recall_curve(y_true, y_proba)
-    pr_auc = float(np.trapz(precision_vals, recall_vals) * -1)
+    pr_auc = -float(np.trapz(precision_vals, recall_vals))
     baseline = y_true.mean()
 
     fig, ax = plt.subplots(figsize=figsize)
@@ -356,8 +356,8 @@ def plot_precision_recall_curve(
 
     if optimal_threshold is not None:
         # Find the point on the curve closest to this threshold
-        idx = np.searchsorted(thresholds, optimal_threshold, side="left")
-        idx = min(idx, len(precision_vals) - 2)
+        raw_idx = np.searchsorted(thresholds, optimal_threshold, side="left")
+        idx = int(min(int(raw_idx), len(precision_vals) - 2))
         ax.scatter(
             recall_vals[idx],
             precision_vals[idx],
@@ -367,8 +367,8 @@ def plot_precision_recall_curve(
             label=f"Optimal threshold ({optimal_threshold:.2f})",
         )
 
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.05)
     ax.set_xlabel("Recall")
     ax.set_ylabel("Precision")
     ax.set_title("Precision-Recall Curve (Churn Class)")
@@ -427,8 +427,8 @@ def plot_calibration_curve(
     ax.set_ylabel("Fraction of Positives (Actual Churn Rate)")
     ax.set_title("Calibration Curve (Reliability Diagram)")
     ax.legend(loc="upper left")
-    ax.set_xlim([0, 1])
-    ax.set_ylim([0, 1])
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
 
     plt.tight_layout()
 
@@ -519,7 +519,7 @@ def plot_learning_curves(
     ax.set_ylabel(scoring.upper().replace("_", "-"))
     ax.set_title("Learning Curves")
     ax.legend(loc="lower right")
-    ax.set_ylim([0, 1.05])
+    ax.set_ylim(0, 1.05)
 
     plt.tight_layout()
 

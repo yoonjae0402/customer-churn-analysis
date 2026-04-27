@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from dotenv import load_dotenv
 
 # Load environment variables
